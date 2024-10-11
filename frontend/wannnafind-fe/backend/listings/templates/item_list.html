@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WannaFind Items</title>
+</head>
+<body>
+    <h1>Items People Are Looking For</h1>
+    <a href="/create/">Create New Item</a>
+    <ul>
+        {% for item in items %}
+            <li>{{ item.name }}: {{ item.description }}</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
