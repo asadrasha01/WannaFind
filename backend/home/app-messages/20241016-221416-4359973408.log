@@ -1,0 +1,26 @@
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+Subject: Password reset on WannaFind
+From: webmaster@localhost
+To: arashidov2001@gmail.com
+Date: Wed, 16 Oct 2024 22:14:16 -0000
+Message-ID: 
+ <172911685677.58256.13325030682865156128@1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa>
+
+
+You're receiving this email because you requested a password reset for your user account at WannaFind.
+
+Please go to the following page and choose a new password:
+
+http://127.0.0.1:8000/reset/MQ/cf0gfs-a174931c11ebf54909321822cf6b4be0/
+
+Your username, in case you’ve forgotten: asad
+
+Thanks for using our site!
+
+The WannaFind team
+
+
+
+-------------------------------------------------------------------------------
