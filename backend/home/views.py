@@ -1,10 +1,9 @@
-from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
+from django.contrib.auth.forms import UserCreationForm, PasswordChangeForm
 from django.contrib.auth.models import User
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from .models import Item
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
@@ -14,6 +13,8 @@ from django.contrib.sites.shortcuts import get_current_site
 from django.core.mail import send_mail
 from django.conf import settings
 from django.contrib.auth.tokens import default_token_generator
+from .forms import UserLoginForm, UserUpdateForm, ProfileUpdateForm, CustomPasswordChangeForm, ItemRequestForm
+from .models import ItemRequest
 
 
 # Create your views here.
@@ -52,15 +53,19 @@ def register(request):
 #Login
 def user_login(request):
     if request.method == 'POST':
-        username = request.POST['username']
-        password = request.POST['password']
-        user = authenticate(request, username=username, password=password)
-        if user is not None:
-            login(request, user)
-            return redirect('home') #Redirect to home page
-        else:
-            messages.error(request, 'Invalid username or password')
-    return render(request, 'home/login.html')
+        form = UserLoginForm(data=request.POST)  # Remove the 'request' parameter
+        if form.is_valid():
+            username = form.cleaned_data.get('username')
+            password = form.cleaned_data.get('password')
+            user = authenticate(request, username=username, password=password)
+            if user is not None:
+                login(request, user)
+                return redirect(homepage)  # Redirect to a homepage or dashboard
+            else:
+                messages.error(request, 'Invalid username or password.')
+    else:
+        form = UserLoginForm()
+    return render(request, 'home/login.html', {'form': form})
 
 #Logout
 def logout_view(request):
@@ -69,7 +74,25 @@ def logout_view(request):
 
 @login_required
 def profile(request):
-    return render(request, 'home/profile.html', {'user': request.user})
+    user_form = UserUpdateForm(instance=request.user)
+    profile_form = ProfileUpdateForm(instance=request.user.profile)
+
+    if request.method == 'POST':
+        user_form = UserUpdateForm(request.POST, instance=request.user)
+        profile_form = ProfileUpdateForm(request.POST, request.FILES, instance=request.user.profile)
+
+        if user_form.is_valid() and profile_form.is_valid():
+            user_form.save()
+            profile_form.save()
+            messages.success(request, 'Your profile has been updated successfully!')
+            return redirect('profile')
+
+    context = {
+        'user_form': user_form,
+        'profile_form': profile_form
+    }
+
+    return render(request, 'home/profile.html', context)
 
 def activate(request, uidb64, token):
     try:
@@ -86,3 +109,44 @@ def activate(request, uidb64, token):
     else:
         messages.error(request, 'Activation link is invalid!')
         return redirect('home')
+
+@login_required
+def change_password(request):
+    if request.method == 'POST':
+        form = CustomPasswordChangeForm(request.user, request.POST)
+        if form.is_valid():
+            user = form.save()
+            update_session_auth_hash(request, user)  # Important to keep the user logged in after changing password
+            messages.success(request, 'Your password was successfully updated!')
+            return redirect('profile')
+    else:
+        form = CustomPasswordChangeForm(request.user)
+
+    return render(request, 'password_changes/change_password.html', {'form': form})
+
+@login_required
+def submit_item_request(request):
+    if request.method == 'POST':
+        form = ItemRequestForm(request.POST, request.FILES)  # Include request.FILES for image upload
+        if form.is_valid():
+            item_request = form.save(commit=False)
+            item_request.user = request.user  # Associate the request with the logged-in user
+            item_request.save()
+            return redirect('item_requests_list')  # Redirect to the list of item requests
+    else:
+        form = ItemRequestForm()
+
+    return render(request, 'item_requests/submit_item_request.html', {'form': form})
+
+
+def request_list_view(request):
+    """
+    View to render a template with a list of requests.
+    """
+    requests = ItemRequest.objects.all()
+    return render(request, 'item_requests/item_requests_list.html', {'requests': requests})
+
+@login_required
+def item_requests_list(request):
+    item_requests = ItemRequest.objects.filter(user=request.user)  # Retrieve only the user's requests
+    return render(request, 'item_requests/item_requests_list.html', {'item_requests': item_requests})

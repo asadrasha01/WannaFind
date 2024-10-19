@@ -1,7 +1,7 @@
 from rest_framework import serializers
-from .models import Item
+from .models import ItemRequest
 
-class ItemSerializer(serializers.ModelSerializer):
+class RequestSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Item
-        fields = '__all__'  # Include all fields of the Item model
+        model = ItemRequest
+        fields = ['id', 'title', 'description', 'created_at', 'updated_at']
