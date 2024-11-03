@@ -22,3 +22,15 @@ class Profile(models.Model):
 
     def __str__(self):
         return f'{self.user.username} Profile'
+
+class Message(models.Model):
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
+    receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_messages')
+    item = models.ForeignKey(ItemRequest, on_delete=models.CASCADE)
+    content = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+    is_accepted = models.BooleanField(default=False)  # Indicates if the message request is accepted
+    is_read = models.BooleanField(default=False)      # Indicates if the message is read (for notifications)
+
+    def __str__(self):
+        return f"Message from {self.sender} to {self.receiver} about {self.item.item_name}"

@@ -1,0 +1,98 @@
+<!-- chat_detail.html -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Chat with {{ other_user.username }}</title>
+    <style>
+      .chat-messages {
+        height: 80vh;
+        overflow-y: auto;
+        padding: 10px;
+        border-bottom: 1px solid #ddd;
+      }
+      .message {
+        padding: 5px 10px;
+        margin: 5px 0;
+      }
+      .message.me {
+        text-align: right;
+        background-color: #e0f7fa;
+      }
+      .message.other {
+        text-align: left;
+        background-color: #e0e0e0;
+      }
+      .chat-input {
+        width: 100%;
+        padding: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="chat-messages">
+      {% for msg in messages %}
+      <div
+        class="message {% if msg.sender == request.user %}me{% else %}other{% endif %}"
+      >
+        <strong>{{ msg.sender.username }}:</strong> {{ msg.content }}
+      </div>
+      {% endfor %}
+    </div>
+    <textarea
+      id="chat-input"
+      class="chat-input"
+      placeholder="Type your message"
+    ></textarea>
+    <button onclick="sendChatMessage('{{ item.id }}', '{{ other_user.id }}')">
+      Send
+    </button>
+
+    <script>
+      function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+          const cookies = document.cookie.split(';');
+          for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.startsWith(name + '=')) {
+              cookieValue = decodeURIComponent(
+                cookie.substring(name.length + 1)
+              );
+              break;
+            }
+          }
+        }
+        return cookieValue;
+      }
+
+      const csrftoken = getCookie('csrftoken');
+
+      function sendChatMessage(itemId, otherUserId) {
+        const content = document.getElementById('chat-input').value;
+        if (!content) {
+          alert('Message content cannot be empty.');
+          return;
+        }
+
+        fetch(`/item_request/${itemId}/send_message/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken,
+          },
+          body: JSON.stringify({ content }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.status === 'success') {
+              location.reload(); // Reload chat to display the new message
+            } else {
+              alert('Failed to send message: ' + data.message);
+            }
+          })
+          .catch((error) => console.error('Error:', error));
+      }
+    </script>
+  </body>
+</html>

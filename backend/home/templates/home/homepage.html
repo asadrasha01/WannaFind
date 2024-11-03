@@ -13,6 +13,12 @@
       <button type="submit">Logout</button>
     </form>
     <a href="{% url 'submit_item_request' %}">Submit Item Request</a>
+    <div>
+      <a href="{% url 'item_list' %}">Item List</a>
+      <a href="{% url 'notifications' %}">Notifications</a>
+      <a href="{% url 'chat_list' %}">Chats</a>
+    </div>
+
     <!-- Link to submit item request -->
     {% else %}
     <a href="{% url 'register' %}">Register</a>

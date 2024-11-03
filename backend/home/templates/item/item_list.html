@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Available Item Requests</title>
+    <style>
+      /* Basic styles for popup and overlay */
+      .overlay,
+      .popup {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 10;
+      }
+      .popup {
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 400px;
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        z-index: 20;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Available Item Requests</h1>
+    <div id="item-list">
+      {% for item in items %}
+      <div class="item-box" onclick="openPopup('{{ item.id }}')">
+        <img
+          src="{{ item.image.url }}"
+          alt="{{ item.item_name }}"
+          width="100"
+          height="100"
+        />
+        <h3>{{ item.item_name }}</h3>
+        <p>{{ item.description }}</p>
+        <small
+          >Brand: {{ item.brand }} | Posted by: {{ item.user.username }}</small
+        >
+      </div>
+
+      <!-- Individual Popup for Each Item -->
+      <div
+        class="overlay"
+        id="overlay-{{ item.id }}"
+        onclick="closePopup('{{ item.id }}')"
+      ></div>
+      <div class="popup" id="popup-{{ item.id }}">
+        <h2>{{ item.item_name }}</h2>
+        <img
+          src="{{ item.image.url }}"
+          alt="Item Image"
+          width="100"
+          height="100"
+        />
+        <p>{{ item.description }}</p>
+        <p><strong>Posted by:</strong> {{ item.user.username }}</p>
+        <button onclick="showMessageBox('{{ item.id }}')">Message Owner</button>
+
+        <!-- Message Box -->
+        <div id="message-box-{{ item.id }}" style="display: none">
+          <textarea
+            id="message-content-{{ item.id }}"
+            placeholder="Write your message here"
+          ></textarea>
+          <!-- Update the onclick to call sendChatMessage with appropriate parameters -->
+          <button
+            onclick="sendChatMessage('{{ item.id }}', '{{ item.user.id }}')"
+          >
+            Send
+          </button>
+        </div>
+      </div>
+      {% empty %}
+      <p>No items have been posted yet.</p>
+      {% endfor %}
+    </div>
+
+    <script>
+      // Function to open the popup for a specific item
+      function openPopup(itemId) {
+        document.getElementById('overlay-' + itemId).style.display = 'block';
+        document.getElementById('popup-' + itemId).style.display = 'block';
+      }
+
+      // Function to close the popup for a specific item
+      function closePopup(itemId) {
+        document.getElementById('overlay-' + itemId).style.display = 'none';
+        document.getElementById('popup-' + itemId).style.display = 'none';
+        document.getElementById('message-box-' + itemId).style.display = 'none';
+      }
+
+      // Show the message box for a specific item
+      function showMessageBox(itemId) {
+        document.getElementById('message-box-' + itemId).style.display =
+          'block';
+      }
+
+      // Function to send a message for a specific item (with corrected function name)
+      function sendChatMessage(itemId, otherUserId) {
+        const content = document.getElementById(
+          'message-content-' + itemId
+        ).value;
+
+        if (!content) {
+          alert('Message content cannot be empty.');
+          return;
+        }
+
+        fetch(`/item_request/${itemId}/send_message/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}',
+          },
+          body: JSON.stringify({ content }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.status === 'success') {
+              console.log('Message sent successfully.');
+              loadChatMessages(itemId, otherUserId);
+              document.getElementById('message-content-' + itemId).value = ''; // Clear the input field
+            } else {
+              alert('Failed to send message: ' + data.message);
+            }
+          })
+          .catch((error) => console.error('Error:', error));
+      }
+
+      // Function to load chat messages (for refreshing after sending a message)
+      function loadChatMessages(itemId, otherUserId) {
+        fetch(`/item_request/${itemId}/chat/${otherUserId}/`)
+          .then((response) => response.json())
+          .then((data) => {
+            const chatMessages = document.getElementById('chat-messages');
+            chatMessages.innerHTML = '';
+            data.messages.forEach((msg) => {
+              const messageElement = document.createElement('p');
+              messageElement.textContent = `${msg.sender}: ${msg.content}`;
+              chatMessages.appendChild(messageElement);
+            });
+          })
+          .catch((error) =>
+            console.error('Error loading chat messages:', error)
+          );
+      }
+    </script>
+  </body>
+</html>
