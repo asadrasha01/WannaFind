@@ -32,7 +32,9 @@ class CustomPasswordChangeForm(PasswordChangeForm):
 class ItemRequestForm(forms.ModelForm):
     class Meta:
         model = ItemRequest
-        fields = ['item_name', 'description', 'image', 'brand']  # Updated fields
-        widgets = {
-            'description': forms.Textarea(attrs={'rows': 3}),
-        }
+        fields = ['item_name', 'description', 'category', 'image', 'brand']  # No need to include 'id'
+
+    def __init__(self, *args, **kwargs):
+        super(ItemRequestForm, self).__init__(*args, **kwargs)
+        # Set 'id' as read-only if you include it
+        self.fields['id'] = forms.CharField(initial=self.instance.id if self.instance else None, disabled=True)

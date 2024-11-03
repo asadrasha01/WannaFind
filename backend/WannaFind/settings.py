@@ -32,9 +32,9 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
-    'home',                    # Your app name
-    'rest_framework',          # Django REST Framework (if you're using it)
-    'corsheaders',             # If you're using CORS
+    'home',                              
+    'corsheaders',        
+    # Django apps     
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -42,6 +42,10 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.sites', 
+    # Third-party apps
+    'rest_framework',
+    'rest_framework.authtoken',
+
 ]
 
 SITE_ID = 1
@@ -88,7 +92,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'wannafind_db',
         'USER': 'myuser',
-        'PASSWORD': 'new_password',
+        'PASSWORD': 'asad2001',
         'HOST': 'localhost',
         'PORT': '5432',
     }
@@ -142,8 +146,20 @@ LOGIN_REDIRECT_URL = 'home'
 LOGIN_URL = 'login'
 
 #Password reset emails
-EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
-EMAIL_FILE_PATH = 'home/app-messages'
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.your-email-provider.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'arashidov20010@gmail.com'
+EMAIL_HOST_PASSWORD = 'GTRnissan2.7'
+
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+}

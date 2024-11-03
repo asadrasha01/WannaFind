@@ -1,0 +1,28 @@
+<!-- notifications.html -->
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Notifications</title>
+  </head>
+  <body>
+    <h1>Notifications</h1>
+    <a href="{% url 'homepage' %}">Home</a>
+    {% if message_requests %}
+    <ul>
+      {% for message in message_requests %}
+      <li>
+        <p>
+          <strong>{{ message.sender.username }}</strong> sent a request about
+          <strong>{{ message.item.item_name }}</strong>:
+        </p>
+        <p>{{ message.content }}</p>
+        <a href="{% url 'accept_message_request' message.id %}">Accept</a>
+        <a href="{% url 'reject_message_request' message.id %}">Reject</a>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p>No new notifications.</p>
+    {% endif %}
+  </body>
+</html>

@@ -1,0 +1,46 @@
+<!-- chat_list.html -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Chats</title>
+    <style>
+      .chat-container {
+        display: flex;
+        flex-direction: column;
+        padding: 10px;
+      }
+      .chat-item {
+        padding: 10px;
+        border-bottom: 1px solid #ddd;
+        cursor: pointer;
+      }
+      .chat-item:hover {
+        background-color: #f0f0f0;
+      }
+    </style>
+    <script>
+      // JavaScript function to navigate to a specific chat
+      function goToChat(itemId, otherUserId) {
+        const url = `/chats/${itemId}/${otherUserId}/`;
+        window.location.href = url;
+      }
+    </script>
+  </head>
+  <body>
+    <h2>Your Chats</h2>
+    <div class="chat-container">
+      {% for chat in chat_list %}
+      <div
+        class="chat-item"
+        onclick="goToChat('{{ chat.item.id }}', '{{ chat.other_user.id }}');"
+      >
+        <strong>{{ chat.other_user.username }}</strong> - {{ chat.item.item_name
+        }}
+      </div>
+      {% empty %}
+      <p>No previous chats available.</p>
+      {% endfor %}
+    </div>
+  </body>
+</html>

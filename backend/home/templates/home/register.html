@@ -1,18 +1,15 @@
-{% extends "home/homepage.html" %} {% block content %}
-<h2>Register</h2>
-
-<form method="post">
-  {% csrf_token %} {% if form.non_field_errors %}
-  <div class="error">{{ form.non_field_errors }}</div>
-  {% endif %} {% for field in form %}
-  <div>
-    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-    {{ field }} {% if field.errors %} {% for error in field.errors %}
-    <div class="error">{{ error }}</div>
-    {% endfor %} {% endif %}
-  </div>
-  {% endfor %}
-
-  <button type="submit">Register</button>
-</form>
-{% endblock %}
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Register</title>
+  </head>
+  <body>
+    <h1>Register</h1>
+    <form method="post">
+      {% csrf_token %} {{ form.as_p }}
+      <!-- Render the form fields -->
+      <button type="submit">Register</button>
+    </form>
+    <a href="{% url 'login' %}">Already have an account? Login here.</a>
+  </body>
+</html>
