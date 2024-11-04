@@ -20,7 +20,7 @@ from django.utils import timezone
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
-from django.db.models import Q
+from django.db.models import Q, F
 
 # Create your views here.
 def homepage(request):
@@ -212,7 +212,7 @@ def item_detail(request, item_id):
 def send_message_request(request, item_id):
     if request.method == 'POST':
         item = get_object_or_404(ItemRequest, id=item_id)
-        receiver = item.user
+        receiver = item.user if item.user != request.user else get_object_or_404(User, id=request.POST.get('receiver_id'))
         sender = request.user
 
         # Parse JSON body to extract content
@@ -220,18 +220,20 @@ def send_message_request(request, item_id):
         content = data.get('content')  # Retrieve content as plain text
 
         if content:
-            Message.objects.create(
+            message = Message.objects.create(
                 sender=sender,
                 receiver=receiver,
                 item=item,
-                content=content,  # Save as plain text
+                content=content,
                 timestamp=timezone.now()
             )
-            return JsonResponse({'status': 'success', 'message': 'Message sent successfully.'})
-
+            return JsonResponse({'status': 'success', 'content': content})
         return JsonResponse({'status': 'error', 'message': 'Message content is required.'}, status=400)
 
     return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=405)
+
+
+
 
 
 # Accept a message request (item owner only)
@@ -244,6 +246,7 @@ def accept_message_request(request, message_id):
     # Redirect to chat_list without additional parameters
     return redirect('chat_detail', item_id=message.item.id, other_user_id=message.sender.id)
 
+
 @login_required
 def reject_message_request(request, message_id):
     message = get_object_or_404(Message, id=message_id, receiver=request.user)
@@ -253,11 +256,13 @@ def reject_message_request(request, message_id):
     return redirect('notifications')
 
 # Chat List and Detail Views
+
 @login_required
 def chat_list(request):
-    # Get all unique conversations for the user
+    # Get distinct chats by grouping by each unique item and user pair
     chats = Message.objects.filter(
         Q(sender=request.user) | Q(receiver=request.user),
+        ~Q(sender=request.user, receiver=request.user),  # Exclude self-chats
         is_accepted=True
     ).values('item', 'sender', 'receiver').distinct()
 
@@ -266,13 +271,13 @@ def chat_list(request):
         other_user_id = chat['receiver'] if chat['sender'] == request.user.id else chat['sender']
         other_user = User.objects.get(id=other_user_id)
         item = ItemRequest.objects.get(id=chat['item'])
-        
         chat_list.append({
             'other_user': other_user,
             'item': item,
         })
 
     return render(request, 'chat/chat_list.html', {'chat_list': chat_list})
+
 
 @login_required
 def chat_detail_view(request, item_id, other_user_id):
@@ -289,6 +294,22 @@ def chat_detail_view(request, item_id, other_user_id):
         'messages': messages,
         'item': item,
         'other_user': other_user,
+    })
+@login_required
+def get_chat_messages(request, item_id, other_user_id):
+    item = get_object_or_404(ItemRequest, id=item_id)
+    other_user = get_object_or_404(User, id=other_user_id)
+    messages = Message.objects.filter(
+        item=item,
+        is_accepted=True,
+        sender__in=[request.user.id, other_user_id],
+        receiver__in=[request.user.id, other_user_id]
+    ).order_by('timestamp')
+
+    return render(request, 'chat/chat_detail.html', {
+        'messages': messages,
+        'item': item,
+        'other_user': other_user
     })
 
 # Notifications
