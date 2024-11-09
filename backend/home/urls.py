@@ -1,5 +1,4 @@
 from django.urls import path
-from .api_views import RequestListView, RequestDetailView
 from django.contrib.auth import views as auth_views
 from .views import homepage, register, user_login, logout_view, activate, profile, change_password, request_list_view, submit_item_request, item_list, chat_list, accept_message_request, send_message_request
 from . import views
@@ -23,12 +22,6 @@ urlpatterns = [
     path('password_reset/done/', auth_views.PasswordResetDoneView.as_view(template_name='home/password_reset_done.html'), name='password_reset_done'),
     path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(template_name='home/password_reset_confirm.html'), name='password_reset_confirm'),
     path('reset/done/', auth_views.PasswordResetCompleteView.as_view(template_name='home/password_reset_complete.html'), name='password_reset_complete'),
-
-    # API Endpoints
-    path('api/register/', views.api_register, name='api_register'),
-    path('api/login/', views.api_login, name='api_login'),
-    path('api/requests/', RequestListView.as_view(), name='request-list'),
-    path('api/requests/<int:pk>/', RequestDetailView.as_view(), name='request-detail'),
 
     # Item Requests
     path('requests/', request_list_view, name='request-list-html'),

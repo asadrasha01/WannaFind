@@ -1,4 +1,4 @@
-from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
+from django.contrib.auth import authenticate, login, logout, update_session_auth_hash, get_user_model
 from django.contrib.auth.forms import UserCreationForm, PasswordChangeForm
 from django.contrib.auth.models import User
 from django.shortcuts import render, redirect, get_object_or_404
@@ -21,6 +21,9 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
 from django.db.models import Q, F
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
+from django.http import HttpResponse
 
 # Create your views here.
 def homepage(request):
@@ -32,54 +35,29 @@ def register(request):
         form = UserRegistrationForm(request.POST)
         if form.is_valid():
             user = form.save(commit=False)
-            user.is_active = True  # Set user as inactive until confirmed
+            user.is_active = False  # Set as inactive until confirmed
             user.save()
 
-        """  # Send confirmation email
+            # Generate token and uid
             token = default_token_generator.make_token(user)
             uid = urlsafe_base64_encode(force_bytes(user.pk))
-            current_site = get_current_site(request)
-            mail_subject = 'Activate your account'
-            message = render_to_string('home/account_activation_email.html', {
-                'user': user,
-                'domain': current_site.domain,
-                'uid': uid,
-                'token': token,
-            })
-            send_mail(mail_subject, message, settings.EMAIL_HOST_USER, [user.email])
-
-            messages.success(request, 'Please confirm your email to complete registration.')
-            return redirect('login')"""
+            
+            # Construct activation link
+            activation_link = f"{request.scheme}://{request.get_host()}/activate/{uid}/{token}/"
+            
+            # Send email with the activation link
+            send_mail(
+                subject="Activate Your Account",
+                message=f"Thank you for registering. Click the link below to activate your account:\n\n{activation_link}",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+                fail_silently=False,
+            )
+            return render(request, 'registration/success.html', {'message': 'Please confirm your email to complete registration.'})
     else:
-        form = UserCreationForm()
+        form = UserRegistrationForm()
     
     return render(request, 'home/register.html', {'form': form})
-
-# Registration API view
-@api_view(['POST'])
-def api_register(request):
-    form = UserRegistrationForm(data=request.data)
-    if form.is_valid():
-        user = form.save(commit=False)
-        user.is_active = False  # Deactivate until email confirmation
-        user.save()
-
-        # Send confirmation email
-        token = default_token_generator.make_token(user)
-        uid = urlsafe_base64_encode(force_bytes(user.pk))
-        current_site = get_current_site(request)
-        mail_subject = 'Activate your account'
-        message = render_to_string('home/account_activation_email.html', {
-            'user': user,
-            'domain': current_site.domain,
-            'uid': uid,
-            'token': token,
-        })
-        send_mail(mail_subject, message, settings.EMAIL_HOST_USER, [user.email])
-
-        return Response({'message': 'Please confirm your email to complete registration.'}, status=status.HTTP_201_CREATED)
-    
-    return Response(form.errors, status=status.HTTP_400_BAD_REQUEST)
 
 #Login
 def user_login(request):
@@ -97,17 +75,7 @@ def user_login(request):
     else:
         form = UserLoginForm()
     return render(request, 'home/login.html', {'form': form})
-# Login API view
-@api_view(['POST'])
-def api_login(request):
-    username = request.data.get('username')
-    password = request.data.get('password')
-    user = authenticate(request, username=username, password=password)
-    if user is not None:
-        login(request, user)
-        return Response({'message': 'Login successful'}, status=status.HTTP_200_OK)
-    
-    return Response({'error': 'Invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)
+
 #Logout
 def logout_view(request):
     logout(request)
@@ -135,9 +103,11 @@ def profile(request):
 
     return render(request, 'home/profile.html', context)
 
+User = get_user_model()
+
 def activate(request, uidb64, token):
     try:
-        uid = force_str(urlsafe_base64_decode(uidb64))
+        uid = urlsafe_base64_decode(uidb64).decode()
         user = User.objects.get(pk=uid)
     except (TypeError, ValueError, OverflowError, User.DoesNotExist):
         user = None
@@ -145,10 +115,10 @@ def activate(request, uidb64, token):
     if user is not None and default_token_generator.check_token(user, token):
         user.is_active = True
         user.save()
-        messages.success(request, 'Your account has been activated! You can now log in.')
+        messages.success(request, 'Your account has been activated successfully!')
         return redirect('login')
     else:
-        messages.error(request, 'Activation link is invalid!')
+        messages.error(request, 'The activation link is invalid or has expired.')
         return redirect('home')
 
 @login_required
@@ -212,7 +182,8 @@ def item_detail(request, item_id):
 def send_message_request(request, item_id):
     if request.method == 'POST':
         item = get_object_or_404(ItemRequest, id=item_id)
-        receiver = item.user if item.user != request.user else get_object_or_404(User, id=request.POST.get('receiver_id'))
+        receiver_id = request.POST.get('receiver_id')
+        receiver = item.user if item.user != request.user else get_object_or_404(User, id=receiver_id)
         sender = request.user
 
         # Parse JSON body to extract content
@@ -220,6 +191,7 @@ def send_message_request(request, item_id):
         content = data.get('content')  # Retrieve content as plain text
 
         if content:
+            # Save to database
             message = Message.objects.create(
                 sender=sender,
                 receiver=receiver,
@@ -227,12 +199,26 @@ def send_message_request(request, item_id):
                 content=content,
                 timestamp=timezone.now()
             )
+
+            # Confirm the save in logs
+            print("Message saved:", message)
+
+            # Broadcast message over WebSocket
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                f'chat_{item_id}_{receiver.id}',  # Define room name format based on item and user ID
+                {
+                    'type': 'chat_message',
+                    'message': content,
+                    'sender': sender.username,
+                    'timestamp': message.timestamp.strftime('%H:%M, %b %d')
+                }
+            )
+
             return JsonResponse({'status': 'success', 'content': content})
         return JsonResponse({'status': 'error', 'message': 'Message content is required.'}, status=400)
 
     return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=405)
-
-
 
 
 
@@ -243,8 +229,22 @@ def accept_message_request(request, message_id):
     message.is_accepted = True
     message.is_read = True
     message.save()
-    # Redirect to chat_list without additional parameters
+
+    # Notify other user via WebSocket that the request was accepted
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        f'chat_{message.item.id}_{message.sender.id}',  # room_name format
+        {
+            'type': 'chat_message',
+            'message': 'Your request was accepted!',
+            'sender': request.user.username,
+            'timestamp': timezone.now().strftime('%H:%M, %b %d')
+        }
+    )
+
+    # Remove from notifications
     return redirect('chat_detail', item_id=message.item.id, other_user_id=message.sender.id)
+
 
 
 @login_required
@@ -283,28 +283,37 @@ def chat_list(request):
 def chat_detail_view(request, item_id, other_user_id):
     item = get_object_or_404(ItemRequest, id=item_id)
     other_user = get_object_or_404(User, id=other_user_id)
+    
+    # Retrieve messages from the database for this chat
     messages = Message.objects.filter(
         item=item,
-        is_accepted=True,
         sender__in=[request.user.id, other_user_id],
         receiver__in=[request.user.id, other_user_id]
     ).order_by('timestamp')
+    
+    # Optional: Debug log to verify messages retrieved
+    print("Retrieved messages for chat:", messages)
 
     return render(request, 'chat/chat_detail.html', {
         'messages': messages,
         'item': item,
         'other_user': other_user,
     })
+
 @login_required
 def get_chat_messages(request, item_id, other_user_id):
     item = get_object_or_404(ItemRequest, id=item_id)
     other_user = get_object_or_404(User, id=other_user_id)
+    
+    # Retrieve all messages between the two users for this item
     messages = Message.objects.filter(
         item=item,
-        is_accepted=True,
         sender__in=[request.user.id, other_user_id],
         receiver__in=[request.user.id, other_user_id]
     ).order_by('timestamp')
+    
+    # Debugging: Print messages retrieved
+    print("Retrieved messages for chat:", messages)
 
     return render(request, 'chat/chat_detail.html', {
         'messages': messages,
