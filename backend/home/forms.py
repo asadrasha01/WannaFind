@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.models import User
-from django.contrib.auth.forms import UserCreationForm, PasswordChangeForm
+from django.contrib.auth.forms import UserCreationForm, PasswordChangeForm, PasswordResetForm
 from .models import Profile, ItemRequest
 
 class UserRegistrationForm(UserCreationForm):
@@ -18,6 +18,26 @@ class UserUpdateForm(forms.ModelForm):
     class Meta:
         model = User
         fields = ['username', 'email']
+
+class CustomPasswordResetForm(PasswordResetForm):
+    email = forms.EmailField(
+        max_length=254,
+        required=True,
+        widget=forms.EmailInput(attrs={'placeholder': 'Enter your email address', 'class': 'form-control'}),
+    )
+
+    def clean_email(self):
+        email = self.cleaned_data['email']
+        if not User.objects.filter(email=email).exists():
+            raise forms.ValidationError("There is no user registered with this email address.")
+        return email
+
+class SetPasswordForm(forms.Form):
+    new_password = forms.CharField(
+        widget=forms.PasswordInput(attrs={'placeholder': 'New Password'}),
+        label="New Password"
+    )
+
 
 class ProfileUpdateForm(forms.ModelForm):
     class Meta:

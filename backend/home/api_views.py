@@ -15,6 +15,7 @@ from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from django.urls import reverse
 
 
 @api_view(['POST'])
@@ -23,15 +24,15 @@ def api_register(request):
     serializer = UserRegistrationSerializer(data=request.data)
     
     if serializer.is_valid():
-        user = serializer.save()  # Save the user without `commit=False`
+        user = serializer.save(commit=False)  # Save the user 
         user.is_active = False  
         user.save()
 
+        # Send activation email
         send_activation_email(user, request)
-        return Response({
-            'message': 'Registration successful. Please check your email to activate your account.'
-        }, status=status.HTTP_201_CREATED)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'message': 'Registration successful. Please confirm your email to activate your account.'}, status=201)
+    else:
+        return Response(serializer.errors, status=400)
 
 
 @api_view(['POST'])
@@ -94,19 +95,11 @@ def activate_account(request, uidb64, token):
 def send_activation_email(user, request):
     token = default_token_generator.make_token(user)
     uid = urlsafe_base64_encode(force_bytes(user.pk))
-    activation_link = f"{request.scheme}://{request.get_host()}/api/activate/{uid}/{token}/"
+    activation_link = f"{request.scheme}://{get_current_site(request).domain}/api/activate/{uid}/{token}/"
     subject = "Activate Your Account"
-    message = render_to_string('email/account_activation.html', {
-        'activation_link': activation_link,
-        'user': user,
-    })
-    send_mail(
-        subject,
-        message,
-        None,  # Use DEFAULT_FROM_EMAIL from settings
-        [user.email],
-        fail_silently=False,
-    )
+    message = f"Hi {user.username},\n\nThank you for registering. Click the link below to activate your account:\n\n{activation_link}\n\nBest regards,\nThe Team"
+    send_mail(subject, message, settings.EMAIL_HOST_USER, [user.email])
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -132,3 +125,31 @@ def change_password(request):
         'message': 'Password changed successfully.',
         'token': new_token.key  # Return new token if old tokens are invalidated
     }, status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+def api_password_reset_request(request):
+    email = request.data.get('email')
+    if email:
+        associated_user = User.objects.filter(email=email).first()
+        if associated_user:
+            subject = "Password Reset Requested"
+            
+            # Generate the token and UID
+            token = default_token_generator.make_token(associated_user)
+            uid = urlsafe_base64_encode(force_bytes(associated_user.pk))
+
+            # Generate the reset link using reverse to match the correct pattern
+            reset_link = request.build_absolute_uri(
+                reverse('password_reset_confirm', kwargs={'uidb64': uid, 'token': token})
+            )
+
+            # Render the email content
+            message = f"Hi {associated_user.username},\n\nClick the link below to reset your password:\n\n{reset_link}\n\nBest regards,\nWannaFind"
+
+            # Send the reset email
+            send_mail(subject, message, settings.EMAIL_HOST_USER, [associated_user.email])
+
+            return Response({"message": "Password reset email sent."}, status=status.HTTP_200_OK)
+        else:
+            return Response({"error": "User with this email does not exist."}, status=status.HTTP_400_BAD_REQUEST)
+    return Response({"error": "Email is required."}, status=status.HTTP_400_BAD_REQUEST)

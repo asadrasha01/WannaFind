@@ -11,7 +11,7 @@ from django.contrib.sites.shortcuts import get_current_site
 from django.core.mail import send_mail
 from django.conf import settings
 from django.contrib.auth.tokens import default_token_generator
-from .forms import UserLoginForm, UserUpdateForm, ProfileUpdateForm, CustomPasswordChangeForm, ItemRequestForm, UserRegistrationForm
+from .forms import UserLoginForm, UserUpdateForm, ProfileUpdateForm, CustomPasswordChangeForm, ItemRequestForm, UserRegistrationForm, PasswordResetForm, SetPasswordForm
 from .models import ItemRequest, Message
 from rest_framework import status
 from rest_framework.decorators import api_view
@@ -24,6 +24,7 @@ from django.db.models import Q, F
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from django.http import HttpResponse
+from django.urls import reverse
 
 # Create your views here.
 def homepage(request):
@@ -121,19 +122,73 @@ def activate(request, uidb64, token):
         messages.error(request, 'The activation link is invalid or has expired.')
         return redirect('home')
 
+def password_reset_request(request):
+    if request.method == "POST":
+        password_reset_form = PasswordResetForm(request.POST)
+        if password_reset_form.is_valid():
+            email = password_reset_form.cleaned_data['email']
+            associated_user = User.objects.filter(email=email).first()
+            if associated_user:
+                subject = "Password Reset Requested"
+                
+                # Generate the token and UID
+                token = default_token_generator.make_token(associated_user)
+                uid = urlsafe_base64_encode(force_bytes(associated_user.pk))
+
+                # Construct the reset link
+                reset_link = request.build_absolute_uri(
+                    reverse('password_reset_confirm', kwargs={'uidb64': uid, 'token': token})
+                )
+
+                # Send the email with reset link
+                message = render_to_string('home/password_reset_email.html', {
+                    'reset_link': reset_link,
+                    'user': associated_user,
+                })
+                send_mail(subject, message, settings.EMAIL_HOST_USER, [associated_user.email])
+                messages.success(request, "An email has been sent to reset your password.")
+                return redirect("password_reset_done")
+    else:
+        password_reset_form = PasswordResetForm()
+
+    return render(request, "home/password_reset_form.html", {"password_reset_form": password_reset_form})
+
+def password_reset_confirm(request, uidb64, token):
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = User.objects.get(pk=uid)
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        user = None
+
+    if user is not None and default_token_generator.check_token(user, token):
+        if request.method == 'POST':
+            form = SetPasswordForm(user, request.POST)
+            if form.is_valid():
+                form.save()
+                messages.success(request, 'Your password has been reset successfully!')
+                return redirect('login')
+        else:
+            form = SetPasswordForm(user)
+    else:
+        messages.error(request, 'The password reset link is invalid, possibly because it has already been used.')
+        return redirect('password_reset')
+
+    return render(request, 'home/password_reset_confirm.html', {'form': form})
+
 @login_required
-def change_password(request):
+def change_password_in_profile(request):
+    # This is used by logged-in users to change their password in the profile.
     if request.method == 'POST':
         form = CustomPasswordChangeForm(request.user, request.POST)
         if form.is_valid():
             user = form.save()
-            update_session_auth_hash(request, user)  # Important to keep the user logged in after changing password
+            update_session_auth_hash(request, user)  # Keep the user logged in after changing password
             messages.success(request, 'Your password was successfully updated!')
             return redirect('profile')
     else:
         form = CustomPasswordChangeForm(request.user)
 
-    return render(request, 'password_changes/change_password.html', {'form': form})
+    return render(request, 'home/change_password.html', {'form': form})
 
 @login_required
 def submit_item_request(request):

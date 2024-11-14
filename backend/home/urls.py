@@ -1,6 +1,6 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
-from .views import homepage, register, user_login, logout_view, activate, profile, change_password, request_list_view, submit_item_request, item_list, chat_list, accept_message_request, send_message_request
+from .views import homepage, register, user_login, logout_view, activate, profile, change_password_in_profile, request_list_view, submit_item_request, item_list, chat_list, accept_message_request
 from . import views
 from django.conf import settings
 from django.conf.urls.static import static
@@ -12,15 +12,23 @@ urlpatterns = [
     path('login/', user_login, name='login'),
     path('logout/', logout_view, name='logout'),
     path('profile/', profile, name='profile'),
-    path('change_password/', change_password, name='change_password'),
 
     # Email Activation
     path('activate/<uidb64>/<token>/', activate, name='activate'),
 
-    # Password Reset
-    path('password_reset/', auth_views.PasswordResetView.as_view(template_name='home/password_reset.html'), name='password_reset'),
-    path('password_reset/done/', auth_views.PasswordResetDoneView.as_view(template_name='home/password_reset_done.html'), name='password_reset_done'),
+    ## Password change in profile
+    path('change-password/', views.change_password_in_profile, name='change_password_in_profile'),
+    
+    # Password reset request
+    path('password-reset/', views.password_reset_request, name='password_reset'),
+    
+    # Confirmation that the reset email was sent
+    path('password-reset/done/', auth_views.PasswordResetDoneView.as_view(template_name='home/password_reset_done.html'), name='password_reset_done'),
+    
+    # Link to reset the password using uid and token
     path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(template_name='home/password_reset_confirm.html'), name='password_reset_confirm'),
+    
+    # Confirmation that the password was reset successfully
     path('reset/done/', auth_views.PasswordResetCompleteView.as_view(template_name='home/password_reset_complete.html'), name='password_reset_complete'),
 
     # Item Requests
