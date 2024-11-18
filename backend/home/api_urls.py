@@ -12,5 +12,10 @@ urlpatterns = [
     path('profile/', api_views.profile_view, name='api_profile'),
     # Activation and password change endpoints
     path('activate/<uidb64>/<token>/', api_views.activate_account, name='activate_account'),
-    path('change_password/', api_views.change_password, name='change_password'),
+    
+    path('password-reset/', api_views.api_password_reset_request, name='api_password_reset'),
+    path('password-reset-confirm/<uidb64>/<token>/', api_views.api_password_reset_confirm, name='password_reset_confirm'),
+    # Change password in profile
+    path('api/change-password/', api_views.api_change_password, name='api_change_password'),
+    
 ]

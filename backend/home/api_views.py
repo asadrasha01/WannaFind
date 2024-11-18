@@ -1,15 +1,12 @@
 from .serializers import UserRegistrationSerializer, UserProfileSerializer
 from django.contrib.auth.models import User
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate, update_session_auth_hash
 from django.core.mail import send_mail
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from django.contrib.sites.shortcuts import get_current_site
 from django.contrib.auth.tokens import default_token_generator
-from django.template.loader import render_to_string
 from django.conf import settings
-from django.db.models.signals import post_save
-from django.dispatch import receiver
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
@@ -19,20 +16,22 @@ from django.urls import reverse
 
 
 @api_view(['POST'])
-@permission_classes([AllowAny])  # This ensures anyone can access the register endpoint
+@permission_classes([AllowAny])
 def api_register(request):
-    serializer = UserRegistrationSerializer(data=request.data)
-    
-    if serializer.is_valid():
-        user = serializer.save(commit=False)  # Save the user 
-        user.is_active = False  
-        user.save()
+    try:
+        serializer = UserRegistrationSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            user = serializer.save()
+            user.is_active = False
+            user.save()
 
-        # Send activation email
-        send_activation_email(user, request)
-        return Response({'message': 'Registration successful. Please confirm your email to activate your account.'}, status=201)
-    else:
-        return Response(serializer.errors, status=400)
+            send_activation_email(user, request)
+            return Response({'message': 'Registration successful. Please confirm your email to activate your account.'}, status=201)
+        else:
+            return Response(serializer.errors, status=400)
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
 
 
 @api_view(['POST'])
@@ -100,33 +99,8 @@ def send_activation_email(user, request):
     message = f"Hi {user.username},\n\nThank you for registering. Click the link below to activate your account:\n\n{activation_link}\n\nBest regards,\nThe Team"
     send_mail(subject, message, settings.EMAIL_HOST_USER, [user.email])
 
-
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def change_password(request):
-    user = request.user
-    current_password = request.data.get('current_password')
-    new_password = request.data.get('new_password')
-
-    if not current_password or not new_password:
-        return Response({'error': 'Please provide both current and new passwords.'}, status=status.HTTP_400_BAD_REQUEST)
-
-    if not user.check_password(current_password):
-        return Response({'error': 'Current password is incorrect.'}, status=status.HTTP_400_BAD_REQUEST)
-
-    user.set_password(new_password)
-    user.save()
-
-    # Refresh the token
-    Token.objects.filter(user=user).delete()
-    new_token = Token.objects.create(user=user)
-
-    return Response({
-        'message': 'Password changed successfully.',
-        'token': new_token.key  # Return new token if old tokens are invalidated
-    }, status=status.HTTP_200_OK)
-
-@api_view(['POST'])
+@permission_classes([AllowAny])  # Allow anyone to initiate a password reset
 def api_password_reset_request(request):
     email = request.data.get('email')
     if email:
@@ -153,3 +127,55 @@ def api_password_reset_request(request):
         else:
             return Response({"error": "User with this email does not exist."}, status=status.HTTP_400_BAD_REQUEST)
     return Response({"error": "Email is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])  # Allow anyone to reset password using a valid link
+def api_password_reset_confirm(request, uidb64, token):
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = User.objects.get(pk=uid)
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        return Response({"error": "Invalid reset link."}, status=status.HTTP_400_BAD_REQUEST)
+
+    if default_token_generator.check_token(user, token):
+        new_password = request.data.get('new_password')
+        if not new_password:
+            return Response({"error": "New password is required."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        user.set_password(new_password)
+        user.save()
+        return Response({"message": "Password has been reset successfully."}, status=status.HTTP_200_OK)
+    else:
+        return Response({"error": "The reset link is invalid or has expired."}, status=status.HTTP_400_BAD_REQUEST)
+    
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])  # Only logged-in users can access this
+def api_change_password(request):
+    # Get the logged-in user
+    user = request.user
+    
+    # Validate the request body
+    current_password = request.data.get('current_password')
+    new_password = request.data.get('new_password')
+    
+    if not current_password or not new_password:
+        return Response({'error': 'Both current and new passwords are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if not user.check_password(current_password):
+        return Response({'error': 'Current password is incorrect.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Update the password
+    user.set_password(new_password)
+    user.save()
+
+    # Update session authentication hash to prevent logout after password change
+    update_session_auth_hash(request, user)
+
+    # Optionally refresh the user's token (if using token-based authentication)
+    Token.objects.filter(user=user).delete()
+    new_token = Token.objects.create(user=user)
+
+    return Response({
+        'message': 'Password has been changed successfully.',
+        'token': new_token.key  # Return the new token for API authentication
+    }, status=status.HTTP_200_OK)    
