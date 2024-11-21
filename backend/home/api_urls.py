@@ -10,6 +10,8 @@ urlpatterns = [
     
     # Profile endpoint
     path('profile/', api_views.profile_view, name='api_profile'),
+    path('check-username/', api_views.check_username),
+    path('check-email/', api_views.check_email),
     # Activation and password change endpoints
     path('activate/<uidb64>/<token>/', api_views.activate_account, name='activate_account'),
     

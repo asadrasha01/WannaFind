@@ -1,0 +1,60 @@
+<div class="bg-gray-900 min-h-screen flex justify-center items-center">
+  <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-2xl">
+    <h2 class="text-2xl font-bold text-gray-800 mb-4">Your Profile</h2>
+    <div class="profile-container">
+      <h2>Profile Settings</h2>
+
+      <!-- Username Section -->
+      <div class="form-group">
+        <label for="username">Current Username</label>
+        <div class="current-username">{{ currentUsername }}</div>
+
+        <label for="newUsername">Change Username</label>
+        <input
+          type="text"
+          id="newUsername"
+          [(ngModel)]="newUsername"
+          placeholder="Enter new username"
+        />
+        <button (click)="checkUsernameAvailability()">
+          Check Availability
+        </button>
+        <small *ngIf="usernameAvailable === true" class="available-msg">
+          Username is available!
+        </small>
+        <small *ngIf="usernameAvailable === false" class="error-msg">
+          Username is not available.
+        </small>
+      </div>
+
+      <!-- Email Section -->
+      <div class="form-group">
+        <label for="email">Current Email</label>
+        <div class="current-email">{{ currentEmail }}</div>
+
+        <label for="newEmail">Change Email</label>
+        <input
+          type="email"
+          id="newEmail"
+          [(ngModel)]="newEmail"
+          placeholder="Enter new email"
+        />
+        <button (click)="checkEmailAvailability()">Check Availability</button>
+        <small *ngIf="emailAvailable === true" class="available-msg">
+          Email is available!
+        </small>
+        <small *ngIf="emailAvailable === false" class="error-msg">
+          Email is already in use.
+        </small>
+      </div>
+
+      <!-- Update Profile Button -->
+      <button (click)="updateProfile()">Save Changes</button>
+
+      <!-- Success/Error Message -->
+      <div *ngIf="updateMessage" class="update-msg">
+        {{ updateMessage }}
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,59 @@
+.profile-container {
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 20px;
+  background: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.current-username,
+.current-email {
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+input {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+button {
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  padding: 10px 15px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+
+.available-msg {
+  color: green;
+}
+
+.error-msg {
+  color: red;
+}
+
+.update-msg {
+  margin-top: 20px;
+  font-weight: bold;
+  text-align: center;
+}

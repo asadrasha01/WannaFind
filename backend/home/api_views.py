@@ -59,21 +59,6 @@ def api_logout(request):
         return Response({"message": "Logged out successfully"}, status=status.HTTP_200_OK)
     return Response({"error": "Not logged in"}, status=status.HTTP_400_BAD_REQUEST)
 
-@api_view(['GET', 'PUT'])
-@permission_classes([IsAuthenticated])
-def profile_view(request):
-    user = request.user
-
-    if request.method == 'GET':
-        serializer = UserProfileSerializer(user)
-        return Response(serializer.data)
-
-    elif request.method == 'PUT':
-        serializer = UserProfileSerializer(user, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -95,8 +80,14 @@ def send_activation_email(user, request):
     token = default_token_generator.make_token(user)
     uid = urlsafe_base64_encode(force_bytes(user.pk))
     activation_link = f"{request.scheme}://{get_current_site(request).domain}/api/activate/{uid}/{token}/"
+    login_link = f"{request.scheme}://{get_current_site(request).domain}/login/"
     subject = "Activate Your Account"
-    message = f"Hi {user.username},\n\nThank you for registering. Click the link below to activate your account:\n\n{activation_link}\n\nBest regards,\nThe Team"
+    message = (
+        f"Hi {user.username},\n\n"
+        f"Click the link below to activate your account:\n\n{activation_link}\n\n"
+        f"After activating, you can login here:\n\n{login_link}\n\n"
+        "Best regards,\nThe Team"
+    )
     send_mail(subject, message, settings.EMAIL_HOST_USER, [user.email])
 
 @api_view(['POST'])
@@ -179,3 +170,48 @@ def api_change_password(request):
         'message': 'Password has been changed successfully.',
         'token': new_token.key  # Return the new token for API authentication
     }, status=status.HTTP_200_OK)    
+
+@api_view(['GET', 'PUT'])
+@permission_classes([IsAuthenticated])
+def profile_view(request):
+    user = request.user
+    serializer = UserProfileSerializer(user)
+    
+    if request.method == 'GET':
+        # Return the current user's profile data
+        serializer = UserProfileSerializer(user)
+        return Response(serializer.data)
+
+    elif request.method == 'PUT':
+        # Allow updating username, email, or other fields
+        data = request.data
+        if 'username' in data:
+            if User.objects.filter(username=data['username']).exclude(id=user.id).exists():
+                return Response({'error': 'Username is already taken.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if 'email' in data:
+            if User.objects.filter(email=data['email']).exclude(id=user.id).exists():
+                return Response({'error': 'Email is already in use.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = UserProfileSerializer(user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    
+# Check Username Availability
+@api_view(['POST'])
+def check_username(request):
+    username = request.data.get('username', '')
+    if User.objects.filter(username=username).exists():
+        return Response({'available': False}, status=status.HTTP_200_OK)
+    return Response({'available': True}, status=status.HTTP_200_OK)
+
+# Check Email Availability
+@api_view(['POST'])
+def check_email(request):
+    email = request.data.get('email', '')
+    if User.objects.filter(email=email).exists():
+        return Response({'available': False}, status=status.HTTP_200_OK)
+    return Response({'available': True}, status=status.HTTP_200_OK)

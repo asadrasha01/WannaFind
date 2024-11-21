@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
-import { ApiService } from '../../services/api.service';
+import { AuthService } from '../../services/auth.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-login',
@@ -7,20 +8,25 @@ import { ApiService } from '../../services/api.service';
   styleUrls: ['./login.component.scss'],
 })
 export class LoginComponent {
-  loginData = { email: '', password: '' };
+  loginData = {
+    username: '',
+    password: '',
+  };
+  errorMessage: string | null = null;
 
-  constructor(private apiService: ApiService) {}
+  constructor(private authService: AuthService, private router: Router) {}
 
-  onLogin(): void {
-    this.apiService.login(this.loginData).subscribe(
-      (response) => {
+  onSubmit() {
+    this.authService.login(this.loginData).subscribe(
+      (response: any) => {
         console.log('Login successful:', response);
-        localStorage.setItem('token', response.token); // Save token
-        alert('Login successful!');
+        // Save the token (if applicable) and redirect
+        localStorage.setItem('token', response.token);
+        this.router.navigate(['/home']);
       },
-      (error) => {
-        console.error('Login failed:', error);
-        alert('Invalid credentials.');
+      (error: any) => {
+        console.error('Login error:', error);
+        this.errorMessage = 'Invalid username, email, or password.';
       }
     );
   }

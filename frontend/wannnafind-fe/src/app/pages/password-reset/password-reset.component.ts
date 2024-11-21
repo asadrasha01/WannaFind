@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { ApiService } from '../../services/api.service';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-password-reset',
@@ -7,19 +7,23 @@ import { ApiService } from '../../services/api.service';
   styleUrls: ['./password-reset.component.scss'],
 })
 export class PasswordResetComponent {
-  email = '';
+  resetData = {
+    email: '',
+  };
+  successMessage: string | null = null;
+  errorMessage: string | null = null;
 
-  constructor(private apiService: ApiService) {}
+  constructor(private authService: AuthService) {}
 
-  onPasswordReset(): void {
-    this.apiService.passwordResetRequest(this.email).subscribe(
-      (response) => {
-        console.log('Password reset email sent:', response);
-        alert('Password reset email sent!');
+  onSubmit() {
+    this.authService.resetPassword(this.resetData).subscribe(
+      (response: any) => {
+        this.successMessage = 'Password reset email sent successfully.';
+        this.errorMessage = null;
       },
-      (error) => {
-        console.error('Password reset failed:', error);
-        alert('Password reset failed.');
+      (error: any) => {
+        this.errorMessage = 'Failed to send password reset email.';
+        this.successMessage = null;
       }
     );
   }
