@@ -7,23 +7,21 @@ import { AuthService } from '../../services/auth.service';
   styleUrls: ['./password-reset.component.scss'],
 })
 export class PasswordResetComponent {
-  resetData = {
-    email: '',
-  };
-  successMessage: string | null = null;
+  email: string = '';
+  message: string | null = null;
   errorMessage: string | null = null;
 
   constructor(private authService: AuthService) {}
 
-  onSubmit() {
-    this.authService.resetPassword(this.resetData).subscribe(
+  onSubmit(): void {
+    this.authService.passwordResetRequest(this.email).subscribe(
       (response: any) => {
-        this.successMessage = 'Password reset email sent successfully.';
+        this.message = response.message;
         this.errorMessage = null;
       },
       (error: any) => {
-        this.errorMessage = 'Failed to send password reset email.';
-        this.successMessage = null;
+        this.message = null;
+        this.errorMessage = error.error?.error || 'Failed to send reset link.';
       }
     );
   }

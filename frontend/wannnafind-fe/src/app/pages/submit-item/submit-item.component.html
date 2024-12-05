@@ -1,0 +1,94 @@
+<div class="submit-item-container">
+  <h2 class="form-title">Submit a New Item</h2>
+
+  <form (ngSubmit)="submitItem()" class="form-container">
+    <div class="form-group">
+      <label for="title">Title</label>
+      <input
+        type="text"
+        id="title"
+        name="title"
+        [(ngModel)]="itemData.title"
+        required
+        class="input-field"
+        placeholder="Enter item title"
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="description">Description</label>
+      <textarea
+        id="description"
+        name="description"
+        [(ngModel)]="itemData.description"
+        required
+        class="input-field textarea-field"
+        placeholder="Enter item description"
+      ></textarea>
+    </div>
+
+    <div class="form-group">
+      <label for="category">Category</label>
+      <select
+        id="category"
+        [(ngModel)]="itemData.category"
+        name="category"
+        required
+        class="input-field"
+      >
+        <option value="" disabled selected>Select a category</option>
+        <option value="electronics">Electronics</option>
+        <option value="fashion">Fashion</option>
+        <option value="home">Home</option>
+        <option value="books">Books</option>
+        <option value="sports">Sports</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="condition">Condition</label>
+      <select
+        id="condition"
+        [(ngModel)]="itemData.condition"
+        name="condition"
+        required
+        class="input-field"
+      >
+        <option value="" disabled selected>Select a condition</option>
+        <option value="new">New</option>
+        <option value="used">Used</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="brand">Brand (Optional)</label>
+      <input
+        type="text"
+        id="brand"
+        name="brand"
+        [(ngModel)]="itemData.brand"
+        class="input-field"
+        placeholder="Enter item brand"
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="image">Upload Image</label>
+      <input
+        type="file"
+        id="image"
+        (change)="onFileSelect($event)"
+        class="input-field file-input"
+      />
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="submit-button">Submit</button>
+    </div>
+  </form>
+
+  <div class="messages">
+    <p *ngIf="errorMessage" class="error-message">{{ errorMessage }}</p>
+    <p *ngIf="successMessage" class="success-message">{{ successMessage }}</p>
+  </div>
+</div>

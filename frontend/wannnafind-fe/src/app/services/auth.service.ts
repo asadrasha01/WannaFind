@@ -1,44 +1,196 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { environment } from '../../environments/environment'; // Ensure correct environment file path
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Observable } from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
-  private apiUrl = environment.apiUrl;
+  private apiUrl = 'http://127.0.0.1:8000/api'; // Base API URL
+
   constructor(private http: HttpClient) {}
 
-  register(data: any) {
-    return this.http.post(`${environment.apiUrl}/register/`, data);
+  register(userData: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/register/`, userData);
   }
 
-  login(data: { username: string; password: string }) {
-    return this.http.post(`${environment.apiUrl}/login/`, data);
+  login(data: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/login/`, data);
   }
 
-  resetPassword(data: { email: string }) {
-    return this.http.post(`${environment.apiUrl}/password-reset/`, data);
+  saveToken(token: string): void {
+    if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+      localStorage.setItem('token', token);
+    }
   }
 
-  // Change password
-  changePassword(data: any) {
-    return this.http.post(`${environment.apiUrl}/change-password/`, data);
+  isAuthenticated(): boolean {
+    const token = localStorage.getItem('token');
+    return !!token;
+  }
+
+  logout(): Observable<any> {
+    return this.http.post(`${this.apiUrl}/logout/`, {});
   }
 
   getProfile() {
-    return this.http.get(`${this.apiUrl}/profile/`);
+    const headers = this.getAuthHeaders();
+    return this.http.get(`${this.apiUrl}/profile/`, { headers });
   }
 
-  checkUsername(username: string) {
-    return this.http.post(`${this.apiUrl}/check-username/`, { username });
+  checkUsername(username: string): Observable<{ available: boolean }> {
+    return this.http.post<{ available: boolean }>(
+      `${this.apiUrl}/check-username/`,
+      { username }
+    );
   }
 
-  checkEmail(email: string) {
+  checkEmail(email: string): Observable<any> {
     return this.http.post(`${this.apiUrl}/check-email/`, { email });
   }
 
-  updateProfile(data: any) {
-    return this.http.put(`${this.apiUrl}/profile/`, data);
+  updateProfile(data: any): Observable<any> {
+    const headers = this.getAuthHeaders();
+    return this.http.put(`${this.apiUrl}/profile/`, data, { headers });
+  }
+
+  passwordResetRequest(email: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/password-reset/`, { email });
+  }
+
+  passwordResetConfirm(
+    uidb64: string,
+    token: string,
+    newPassword: string
+  ): Observable<any> {
+    return this.http.post(
+      `${this.apiUrl}/password-reset-confirm/${uidb64}/${token}/`,
+      { new_password: newPassword }
+    );
+  }
+
+  changePassword(
+    currentPassword: string,
+    newPassword: string
+  ): Observable<any> {
+    return this.http.post(`${this.apiUrl}/change-password/`, {
+      current_password: currentPassword,
+      new_password: newPassword,
+    });
+  }
+
+  // Get Authorization headers
+  getAuthHeaders(): HttpHeaders {
+    if (typeof window !== 'undefined' && localStorage) {
+      const token = localStorage.getItem('token');
+      return new HttpHeaders({
+        Authorization: `Token ${token}`,
+        'Content-Type': 'application/json',
+      });
+    }
+    // Return empty headers or handle unauthenticated scenarios
+    return new HttpHeaders({
+      'Content-Type': 'application/json',
+    });
+  }
+
+  submitItemRequest(data: FormData): Observable<any> {
+    const url = `${this.apiUrl}/submit-item/`;
+    const headers = new HttpHeaders({
+      Authorization: `Token ${localStorage.getItem('token')}`,
+    });
+    // Debug log the data being sent
+    data.forEach((value, key) => {
+      console.log(`${key}: ${value}`);
+    });
+
+    return this.http.post(url, data, { headers });
+  }
+
+  getItemList(): Observable<any> {
+    const url = `${this.apiUrl}/item-list/`;
+    const headers = this.getAuthHeaders();
+    return this.http.get(url, { headers });
+  }
+
+  getItemDetail(itemId: string): Observable<any> {
+    const url = `${this.apiUrl}/item-request-detail/${itemId}/`;
+    const headers = this.getAuthHeaders();
+    return this.http.get(url, { headers }); // Pass headers in the options object
+  }
+
+  getMyRequests(): Observable<any> {
+    const url = `${this.apiUrl}/my-requests/`;
+    const headers = this.getAuthHeaders();
+    return this.http.get(url, { headers }); // Pass headers in the options object
+  }
+
+  // Toggle item active/inactive status
+  toggleItemStatus(itemId: number): Observable<any> {
+    const url = `${this.apiUrl}/toggle-item-status/${itemId}/`;
+    const headers = this.getAuthHeaders();
+    return this.http.post(url, {}, { headers });
+  }
+
+  deleteRequest(itemId: number): Observable<any> {
+    const url = `${this.apiUrl}/delete-request/${itemId}/`; // Ensure this matches api_urls.py
+    const headers = this.getAuthHeaders();
+    return this.http.delete(url, { headers });
+  }
+
+  sendRequest(
+    itemId: number,
+    content: string,
+    receiverId?: number
+  ): Observable<any> {
+    const url = `${this.apiUrl}/send-message/${itemId}/`;
+    const headers = this.getAuthHeaders();
+    const body = {
+      content,
+      receiver_id: receiverId, // Optional
+    };
+
+    return this.http.post(url, body, { headers });
+  }
+
+  getNotifications(): Observable<any> {
+    const url = `${this.apiUrl}/notifications/`;
+    const headers = this.getAuthHeaders();
+    return this.http.get(url, { headers });
+  }
+
+  acceptNotification(messageId: number): Observable<any> {
+    const url = `${this.apiUrl}/notifications/accept/${messageId}/`;
+    const headers = this.getAuthHeaders();
+    return this.http.post(url, {}, { headers });
+  }
+
+  rejectNotification(messageId: number): Observable<any> {
+    const url = `${this.apiUrl}/notifications/reject/${messageId}/`;
+    const headers = this.getAuthHeaders();
+    return this.http.delete(url, { headers });
+  }
+
+  getChatList(): Observable<any> {
+    const url = `${this.apiUrl}/chat-list/`;
+    const headers = this.getAuthHeaders();
+    return this.http.get(url, { headers });
+  }
+
+  getChatMessages(itemId: number, otherUserId: number): Observable<any> {
+    const url = `${this.apiUrl}/chat-messages/${itemId}/${otherUserId}/`;
+    const headers = this.getAuthHeaders();
+    return this.http.get(url, { headers });
+  }
+
+  sendChatMessage(
+    receiverId: number,
+    content: string,
+    itemId: number
+  ): Observable<any> {
+    const url = `${this.apiUrl}/send-chat-message/`;
+    const headers = this.getAuthHeaders();
+    const body = { receiver_id: receiverId, content, item_id: itemId };
+    return this.http.post(url, body, { headers });
   }
 }

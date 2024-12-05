@@ -1,0 +1,34 @@
+<div class="notification-container">
+  <h3>Notifications</h3>
+  <p *ngIf="errorMessage" class="error-message">{{ errorMessage }}</p>
+  <ul *ngIf="notifications.length > 0; else noNotifications">
+    <li *ngFor="let notification of notifications" class="notification-item">
+      <div class="notification-content">
+        <p>
+          <strong>{{ notification.sender.username }}</strong> sent a request:
+        </p>
+        <p class="notification-text">{{ notification.content }}</p>
+        <p class="notification-item-title">
+          For: "{{ notification.item_title }}"
+        </p>
+      </div>
+      <div class="notification-actions">
+        <button
+          class="accept-button"
+          (click)="acceptNotification(notification.id)"
+        >
+          Accept
+        </button>
+        <button
+          class="reject-button"
+          (click)="rejectNotification(notification.id)"
+        >
+          Reject
+        </button>
+      </div>
+    </li>
+  </ul>
+  <ng-template #noNotifications>
+    <p class="no-notifications">No new notifications.</p>
+  </ng-template>
+</div>

@@ -47,7 +47,4 @@ urlpatterns = [
     path('chats/<int:item_id>/<int:other_user_id>/', views.chat_detail_view, name='chat_detail'),
     path('item_request/<int:item_id>/send_message/', views.send_message_request, name='send_message_request'),
     path('message/<int:message_id>/accept/', accept_message_request, name='accept_message_request'),
-]
-
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

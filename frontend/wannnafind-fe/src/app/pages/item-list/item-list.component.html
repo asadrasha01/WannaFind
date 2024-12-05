@@ -1,0 +1,57 @@
+<div class="item-list-container">
+  <h2 class="header">Items List</h2>
+  <p *ngIf="errorMessage" class="error-message">{{ errorMessage }}</p>
+  <div *ngIf="items.length === 0 && !errorMessage" class="no-items">
+    No items found.
+  </div>
+  <div class="items-grid" *ngIf="items.length > 0">
+    <div class="item-card" *ngFor="let item of items" (click)="openModal(item)">
+      <img
+        [src]="'http://127.0.0.1:8000' + item.image"
+        alt="{{ item.title }}"
+        class="item-image"
+      />
+      <h3 class="item-title">{{ item.title }}</h3>
+      <p><strong>Category:</strong> {{ item.category }}</p>
+      <p><strong>Condition:</strong> {{ item.condition }}</p>
+      <p class="item-user">{{ item.user_name }}</p>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal" *ngIf="selectedItem">
+    <div class="modal-content">
+      <button class="close-button" (click)="closeModal()">×</button>
+      <img
+        [src]="'http://127.0.0.1:8000' + selectedItem.image"
+        alt="{{ selectedItem.title }}"
+        class="modal-image"
+      />
+      <h3 class="modal-title">{{ selectedItem.title }}</h3>
+      <p><strong>Category:</strong> {{ selectedItem.category }}</p>
+      <p><strong>Condition:</strong> {{ selectedItem.condition }}</p>
+      <p class="modal-description">{{ selectedItem.description }}</p>
+
+      <!-- Beautiful Button -->
+      <button class="request-button" (click)="toggleRequestForm()">
+        Send Request
+      </button>
+
+      <!-- Request Form -->
+      <div *ngIf="showRequestForm" class="request-form">
+        <textarea
+          [(ngModel)]="requestMessage"
+          placeholder="Write your message..."
+          rows="5"
+          class="text-field"
+        ></textarea>
+        <div class="request-buttons">
+          <button class="send-button" (click)="sendRequest()">Send</button>
+          <button class="cancel-button" (click)="cancelRequest()">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

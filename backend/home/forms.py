@@ -52,9 +52,10 @@ class CustomPasswordChangeForm(PasswordChangeForm):
 class ItemRequestForm(forms.ModelForm):
     class Meta:
         model = ItemRequest
-        fields = ['item_name', 'description', 'category', 'image', 'brand']  # No need to include 'id'
+        fields = ['title', 'description', 'category', 'image', 'brand', 'condition']  # Use correct field names
 
     def __init__(self, *args, **kwargs):
         super(ItemRequestForm, self).__init__(*args, **kwargs)
-        # Set 'id' as read-only if you include it
-        self.fields['id'] = forms.CharField(initial=self.instance.id if self.instance else None, disabled=True)
+        # If you want to include the ID as read-only, you can add it dynamically
+        if self.instance and self.instance.id:
+            self.fields['id'] = forms.CharField(initial=self.instance.id, disabled=True)

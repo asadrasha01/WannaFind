@@ -39,7 +39,11 @@
           model is flipped on its head. Here, you don't list products you have,
           but rather the items you're seeking.
         </p>
-        <button class="bg-black text-white px-6 py-3 rounded-md">
+
+        <button
+          class="find-button bg-black text-white px-6 py-3 rounded-md"
+          (click)="onFindWhatYouNeed()"
+        >
           Find What You Need
         </button>
       </div>
@@ -273,19 +277,23 @@
         <button
           class="bg-gradient-to-tr from-purple-500 to-pink-500 text-white px-6 py-3 rounded-xl"
           style="width: 150px; height: auto"
+          routerLink="/submit-item"
         >
           Get Started
         </button>
       </div>
     </div>
   </div>
-  <!--Login and Registration-->
+  <!--Login Section-->
   <div
-    class="bg-gray-900 w-full h-full min-h-screen flex items-center justify-center"
+    id="login-section"
+    class="bg-gray-900 w-full h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8"
   >
-    <div class="w-full max-w-md bg-gray-800 rounded-lg shadow-md p-6">
-      <h1 class="text-2xl font-bold text-white mb-6 text-center">Login</h1>
-      <form (ngSubmit)="onSubmit()" #loginForm="ngForm" class="space-y-4">
+    <!-- Login Form -->
+    <div class="max-w-lg w-full bg-gray-800 rounded-lg shadow-md p-10">
+      <h1 class="text-3xl font-bold text-white mb-8 text-center">Login</h1>
+      <form (ngSubmit)="onSubmit()" #loginForm="ngForm" class="space-y-6">
+        <!-- Username Input -->
         <div>
           <label for="username" class="block text-sm font-medium text-gray-300">
             Username
@@ -296,10 +304,11 @@
             name="username"
             [(ngModel)]="loginData.username"
             required
-            class="w-full mt-1 px-3 py-2 border border-gray-700 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-700 text-white"
+            class="w-full mt-2 px-4 py-3 border border-gray-700 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-700 text-white"
             placeholder="Enter your username"
           />
         </div>
+        <!-- Password Input -->
         <div>
           <label for="password" class="block text-sm font-medium text-gray-300">
             Password
@@ -311,13 +320,13 @@
               name="password"
               [(ngModel)]="loginData.password"
               required
-              class="w-full mt-1 px-3 py-2 border border-gray-700 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-700 text-white pr-10"
+              class="w-full mt-2 px-4 py-3 border border-gray-700 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-700 text-white pr-12"
               placeholder="Enter your password"
             />
             <button
               type="button"
               (click)="togglePasswordVisibility()"
-              class="absolute inset-y-0 right-0 flex items-center pr-3 focus:outline-none"
+              class="absolute inset-y-0 right-3 flex items-center focus:outline-none"
             >
               <img
                 [src]="
@@ -331,6 +340,7 @@
             </button>
           </div>
         </div>
+        <!-- Remember Me and Forgot Password -->
         <div class="flex justify-between items-center">
           <div class="flex items-center">
             <input
@@ -349,12 +359,14 @@
             Forgot your password?
           </a>
         </div>
+        <!-- Login Button -->
         <button
           type="submit"
-          class="w-full bg-blue-600 text-white font-medium py-2 px-4 rounded-md hover:bg-blue-700 focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50"
+          class="w-full bg-blue-600 text-white font-medium py-3 rounded-md hover:bg-blue-700 focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50"
         >
           Login
         </button>
+        <!-- Register Link -->
         <p class="text-sm text-gray-300 text-center">
           Don't have an account?
           <a
@@ -365,6 +377,7 @@
           </a>
         </p>
       </form>
+      <!-- Error Message -->
       <p *ngIf="errorMessage" class="text-red-500 text-sm mt-4 text-center">
         {{ errorMessage }}
       </p>

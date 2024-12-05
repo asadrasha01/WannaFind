@@ -1,0 +1,30 @@
+<div class="requests-container">
+  <h2 class="header">My Requests</h2>
+  <p *ngIf="errorMessage" class="error-message">{{ errorMessage }}</p>
+  <div *ngIf="requests.length === 0 && !errorMessage" class="no-requests">
+    No requests found.
+  </div>
+  <div class="gallery" *ngIf="requests.length > 0">
+    <div class="request-card" *ngFor="let request of requests">
+      <img
+        [src]="'http://127.0.0.1:8000' + request.image"
+        alt="{{ request.title }}"
+        class="request-image"
+      />
+      <div class="card-content">
+        <h3 class="request-title">{{ request.title }}</h3>
+        <p class="request-description">{{ request.description }}</p>
+        <p><strong>Category:</strong> {{ request.category }}</p>
+        <p><strong>Condition:</strong> {{ request.condition }}</p>
+      </div>
+      <div class="actions">
+        <button (click)="toggleStatus(request)" class="status-button">
+          {{ request.active ? "Deactivate" : "Activate" }}
+        </button>
+        <button (click)="deleteRequest(request.id)" class="delete-button">
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

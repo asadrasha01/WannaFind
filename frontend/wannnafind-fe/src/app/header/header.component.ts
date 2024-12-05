@@ -1,6 +1,5 @@
-import { Component, OnInit, Inject, PLATFORM_ID } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { isPlatformBrowser } from '@angular/common';
 
 @Component({
   selector: 'app-header',
@@ -15,28 +14,26 @@ export class HeaderComponent implements OnInit {
     username: '',
   };
 
-  constructor(
-    private router: Router,
-    @Inject(PLATFORM_ID) private platformId: Object
-  ) {}
+  constructor(private router: Router) {}
 
   ngOnInit(): void {
-    // Check if localStorage is accessible
-    if (isPlatformBrowser(this.platformId)) {
+    if (this.isBrowser()) {
       const token = localStorage.getItem('token');
       this.isAuthenticated = !!token;
 
       if (this.isAuthenticated) {
         const userData = JSON.parse(localStorage.getItem('user') || '{}');
-        this.user.username = userData.username || 'Guest';
 
-        if (userData.avatar) {
-          this.user.avatar = userData.avatar;
+        // Ensure username exists and extract initials
+        if (userData.username) {
+          this.user.username = userData.username; // Assign username
+          this.user.initials = userData.username.slice(0, 2).toUpperCase(); // Extract initials
         } else {
-          const firstName = userData.firstName || 'A';
-          const lastName = userData.lastName || 'R';
-          this.user.initials = `${firstName.charAt(0)}${lastName.charAt(0)}`;
+          this.user.initials = 'GU'; // Fallback if username is missing
         }
+
+        // Handle avatar
+        this.user.avatar = userData.avatar || '';
       }
     }
   }
@@ -47,14 +44,23 @@ export class HeaderComponent implements OnInit {
 
   redirectToLogin(): void {
     this.router.navigate(['/']);
+    setTimeout(() => {
+      document.querySelector('#login-section')?.scrollIntoView({
+        behavior: 'smooth',
+      });
+    }, 200); // Ensure smooth scrolling after route navigation
   }
 
   logout(): void {
-    if (isPlatformBrowser(this.platformId)) {
+    if (this.isBrowser()) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
     }
     this.isAuthenticated = false;
     this.router.navigate(['/']);
+  }
+
+  private isBrowser(): boolean {
+    return typeof window !== 'undefined' && typeof localStorage !== 'undefined';
   }
 }

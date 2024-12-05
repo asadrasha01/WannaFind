@@ -1,0 +1,34 @@
+<div class="chat-container">
+  <div class="previous-chats">
+    <h3>Previous Chats</h3>
+    <ul>
+      <li
+        *ngFor="let chat of previousChats"
+        (click)="openChat(chat.userId, chat.itemId)"
+      >
+        <strong>{{ chat.username }}</strong>
+        <p>{{ chat.latestMessage }}</p>
+        <span>{{ chat.timestamp | date : "short" }}</span>
+      </li>
+    </ul>
+  </div>
+  <div class="current-chat">
+    <div *ngIf="!selectedUser">Select a chat to view messages.</div>
+    <div *ngIf="selectedUser">
+      <h3>Chat with {{ selectedUser.username }}</h3>
+      <div class="chat-history">
+        <div *ngFor="let message of currentChat">
+          <p
+            [class]="
+              message.sender === selectedUser.username ? 'received' : 'sent'
+            "
+          >
+            {{ message.content }}
+          </p>
+        </div>
+      </div>
+      <textarea [(ngModel)]="newMessage"></textarea>
+      <button (click)="sendMessage()">Send</button>
+    </div>
+  </div>
+</div>

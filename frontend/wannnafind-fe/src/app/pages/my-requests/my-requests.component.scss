@@ -1,0 +1,106 @@
+/* Main gallery grid */
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); /* Ensures uniform grid items */
+  gap: 20px;
+  justify-items: center; /* Centers items horizontally */
+  align-items: center; /* Centers items vertically */
+  padding: 20px; /* Adds padding around the gallery */
+}
+
+/* Request card styling */
+.request-card {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 15px; /* Rounded corners */
+  width: 250px; /* Fixed width for uniformity */
+  height: 380px; /* Fixed height for uniformity */
+  padding: 15px;
+  text-align: center;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+  overflow: hidden;
+  display: flex;
+  flex-direction: column; /* Ensures proper alignment of child elements */
+  justify-content: space-between; /* Distributes space between child elements */
+  transition: transform 0.2s, box-shadow 0.2s; /* Smooth hover effect */
+}
+
+/* Hover effect for cards */
+.request-card:hover {
+  transform: translateY(-5px); /* Lifts the card slightly */
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Deepens the shadow */
+}
+
+/* Request image styling */
+.request-image {
+  width: 100%;
+  height: 150px; /* Fixed height for images */
+  object-fit: cover; /* Ensures the image fills the area without distortion */
+  border-radius: 10px; /* Rounds the image slightly */
+  margin-bottom: 10px;
+}
+
+/* Title styling */
+.request-title {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+/* Description styling */
+.request-description {
+  font-size: 0.9rem;
+  color: #555;
+  margin-bottom: 10px;
+  overflow: hidden; /* Prevents overflowing text */
+  text-overflow: ellipsis; /* Adds "..." for long text */
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* Limits to 2 lines */
+  -webkit-box-orient: vertical;
+}
+
+/* Actions button container */
+.actions {
+  display: flex;
+  justify-content: space-between; /* Ensures buttons are spaced out */
+  gap: 10px; /* Adds spacing between buttons */
+}
+
+/* Button styling */
+.actions button {
+  flex: 1; /* Ensures buttons take equal width */
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  background-color: #007bff;
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+}
+
+/* Delete button specific style */
+.actions .delete-button {
+  background-color: #dc3545;
+}
+
+/* Button hover effect */
+.actions button:hover {
+  opacity: 0.9;
+}
+
+/* Header text styling */
+h2.header {
+  font-size: 2rem;
+  font-weight: bold;
+  text-align: center;
+  color: #222;
+  margin-bottom: 20px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1); /* Adds a slight shadow for effect */
+}
+
+/* Add padding and center content */
+.requests-container {
+  padding: 20px;
+}

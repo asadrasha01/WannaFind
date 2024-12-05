@@ -17,23 +17,41 @@ export class HomePageComponent {
 
   constructor(private authService: AuthService, private router: Router) {}
 
+  navigateToItemList() {
+    console.log('Navigating to item list...');
+    this.router.navigate(['/item-list']); // Ensure the route matches the app's route configuration
+  }
+
   togglePasswordVisibility() {
     this.showPassword = !this.showPassword;
   }
 
-  onSubmit() {
+  onSubmit(): void {
     this.authService.login(this.loginData).subscribe(
       (response: any) => {
-        console.log('Login successful:', response);
-        // Save the token and redirect
-        localStorage.setItem('token', response.token);
-        this.errorMessage = null;
+        // Save the token
+        this.authService.saveToken(response.token);
+
+        // Redirect to the profile page or dashboard
         this.router.navigate(['/profile']);
       },
       (error: any) => {
-        console.error('Login error:', error);
         this.errorMessage = 'Invalid username or password.';
       }
     );
+  }
+  onFindWhatYouNeed(): void {
+    if (this.authService.isAuthenticated()) {
+      // Navigate to the desired page if logged in
+      this.router.navigate(['/item-list']);
+    } else {
+      // Redirect to login if not logged in
+      this.router.navigate(['/']);
+      setTimeout(() => {
+        document.querySelector('#login-section')?.scrollIntoView({
+          behavior: 'smooth',
+        });
+      }, 200);
+    }
   }
 }

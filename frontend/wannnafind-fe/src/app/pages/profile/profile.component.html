@@ -1,60 +1,111 @@
-<div class="bg-gray-900 min-h-screen flex justify-center items-center">
-  <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-2xl">
-    <h2 class="text-2xl font-bold text-gray-800 mb-4">Your Profile</h2>
-    <div class="profile-container">
-      <h2>Profile Settings</h2>
+<div class="container mx-auto py-8 px-4">
+  <h1 class="text-3xl font-bold mb-6">Your Profile</h1>
 
-      <!-- Username Section -->
-      <div class="form-group">
-        <label for="username">Current Username</label>
-        <div class="current-username">{{ currentUsername }}</div>
+  <!-- Profile Section -->
+  <div class="bg-gray-100 p-6 rounded-lg shadow-md mb-8">
+    <h2 class="text-xl font-semibold mb-4">Profile Settings</h2>
 
-        <label for="newUsername">Change Username</label>
-        <input
-          type="text"
-          id="newUsername"
-          [(ngModel)]="newUsername"
-          placeholder="Enter new username"
-        />
-        <button (click)="checkUsernameAvailability()">
-          Check Availability
-        </button>
-        <small *ngIf="usernameAvailable === true" class="available-msg">
-          Username is available!
-        </small>
-        <small *ngIf="usernameAvailable === false" class="error-msg">
-          Username is not available.
-        </small>
-      </div>
-
-      <!-- Email Section -->
-      <div class="form-group">
-        <label for="email">Current Email</label>
-        <div class="current-email">{{ currentEmail }}</div>
-
-        <label for="newEmail">Change Email</label>
-        <input
-          type="email"
-          id="newEmail"
-          [(ngModel)]="newEmail"
-          placeholder="Enter new email"
-        />
-        <button (click)="checkEmailAvailability()">Check Availability</button>
-        <small *ngIf="emailAvailable === true" class="available-msg">
-          Email is available!
-        </small>
-        <small *ngIf="emailAvailable === false" class="error-msg">
-          Email is already in use.
-        </small>
-      </div>
-
-      <!-- Update Profile Button -->
-      <button (click)="updateProfile()">Save Changes</button>
-
-      <!-- Success/Error Message -->
-      <div *ngIf="updateMessage" class="update-msg">
-        {{ updateMessage }}
-      </div>
+    <!-- Username Section -->
+    <div class="mb-4">
+      <label for="currentUsername" class="block font-medium mb-2"
+        >Current Username</label
+      >
+      <p id="currentUsername" class="bg-gray-200 p-2 rounded">
+        {{ currentUsername }}
+      </p>
     </div>
+    <div class="mb-6">
+      <label for="newUsername" class="block font-medium mb-2"
+        >Change Username</label
+      >
+      <input
+        type="text"
+        id="newUsername"
+        [(ngModel)]="newUsername"
+        (input)="checkUsernameAvailability()"
+        placeholder="Enter new username"
+        class="w-full p-2 border rounded"
+      />
+      <small *ngIf="usernameAvailable === true" class="text-green-500">{{
+        usernameMessage
+      }}</small>
+      <small *ngIf="usernameAvailable === false" class="text-red-500">{{
+        usernameMessage
+      }}</small>
+    </div>
+
+    <!-- Email Section -->
+    <div class="mb-4">
+      <label for="currentEmail" class="block font-medium mb-2"
+        >Current Email</label
+      >
+      <p id="currentEmail" class="bg-gray-200 p-2 rounded">
+        {{ currentEmail }}
+      </p>
+    </div>
+    <div class="mb-6">
+      <label for="newEmail" class="block font-medium mb-2">Change Email</label>
+      <input
+        type="email"
+        id="newEmail"
+        [(ngModel)]="newEmail"
+        (input)="checkEmailAvailability()"
+        placeholder="Enter new email"
+        class="w-full p-2 border rounded"
+      />
+      <small *ngIf="emailAvailable === true" class="text-green-500">{{
+        emailMessage
+      }}</small>
+      <small *ngIf="emailAvailable === false" class="text-red-500">{{
+        emailMessage
+      }}</small>
+    </div>
+
+    <button
+      class="bg-blue-600 text-white font-bold py-2 px-4 rounded hover:bg-blue-700"
+      (click)="saveChanges()"
+    >
+      Save Changes
+    </button>
+    <p *ngIf="updateMessage" class="text-green-500 mt-4">{{ updateMessage }}</p>
+  </div>
+
+  <!-- Change Password Section -->
+  <div class="bg-gray-100 p-6 rounded-lg shadow-md">
+    <h2 class="text-xl font-semibold mb-4">Change Password</h2>
+    <div class="mb-4">
+      <label for="currentPassword" class="block font-medium mb-2"
+        >Current Password</label
+      >
+      <input
+        type="password"
+        id="currentPassword"
+        [(ngModel)]="currentPassword"
+        placeholder="Enter current password"
+        class="w-full p-2 border rounded"
+      />
+    </div>
+    <div class="mb-6">
+      <label for="newPassword" class="block font-medium mb-2"
+        >New Password</label
+      >
+      <input
+        type="password"
+        id="newPassword"
+        [(ngModel)]="newPassword"
+        placeholder="Enter new password"
+        class="w-full p-2 border rounded"
+      />
+    </div>
+    <button
+      class="bg-blue-600 text-white font-bold py-2 px-4 rounded hover:bg-blue-700"
+      (click)="changePassword()"
+    >
+      Change Password
+    </button>
+    <p *ngIf="passwordMessage" class="text-green-500 mt-4">
+      {{ passwordMessage }}
+    </p>
+    <p *ngIf="passwordError" class="text-red-500 mt-4">{{ passwordError }}</p>
   </div>
 </div>
