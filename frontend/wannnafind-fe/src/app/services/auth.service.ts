@@ -19,7 +19,7 @@ export class AuthService {
   }
 
   saveToken(token: string): void {
-    if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+    if (typeof window !== 'undefined' && localStorage) {
       localStorage.setItem('token', token);
     }
   }
@@ -33,20 +33,38 @@ export class AuthService {
     return this.http.post(`${this.apiUrl}/logout/`, {});
   }
 
-  getProfile() {
+  getUserProfile(): Observable<any> {
+    const url = `${this.apiUrl}/profile/`;
     const headers = this.getAuthHeaders();
-    return this.http.get(`${this.apiUrl}/profile/`, { headers });
+    return this.http.get(url, { headers });
   }
 
-  checkUsername(username: string): Observable<{ available: boolean }> {
+  updateUserProfile(data: any): Observable<any> {
+    const url = `${this.apiUrl}/profile/`;
+    const headers = this.getAuthHeaders();
+    return this.http.put(url, data, { headers });
+  }
+
+  checkUsernameAvailability(
+    username: string
+  ): Observable<{ available: boolean }> {
     return this.http.post<{ available: boolean }>(
       `${this.apiUrl}/check-username/`,
       { username }
     );
   }
 
-  checkEmail(email: string): Observable<any> {
-    return this.http.post(`${this.apiUrl}/check-email/`, { email });
+  checkEmailAvailability(email: string): Observable<{ available: boolean }> {
+    return this.http.post<{ available: boolean }>(
+      `${this.apiUrl}/check-email/`,
+      { email }
+    );
+  }
+
+  updateProfileImage(formData: FormData): Observable<any> {
+    const url = `${this.apiUrl}/profile/`; // Assuming the same endpoint handles profile image updates
+    const headers = this.getAuthHeaders();
+    return this.http.put(url, formData, { headers });
   }
 
   updateProfile(data: any): Observable<any> {
@@ -81,17 +99,22 @@ export class AuthService {
 
   // Get Authorization headers
   getAuthHeaders(): HttpHeaders {
-    if (typeof window !== 'undefined' && localStorage) {
+    if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
       const token = localStorage.getItem('token');
-      return new HttpHeaders({
-        Authorization: `Token ${token}`,
-        'Content-Type': 'application/json',
-      });
+      if (token) {
+        console.log('Using token:', token); // Debug log
+        return new HttpHeaders({
+          Authorization: `Token ${token}`,
+          'Content-Type': 'application/json',
+        });
+      } else {
+        console.error('Authentication token is missing.');
+        throw new Error('User is not authenticated.');
+      }
+    } else {
+      console.error('localStorage is not available in this environment.');
+      throw new Error('localStorage is not accessible.');
     }
-    // Return empty headers or handle unauthenticated scenarios
-    return new HttpHeaders({
-      'Content-Type': 'application/json',
-    });
   }
 
   submitItemRequest(data: FormData): Observable<any> {

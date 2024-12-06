@@ -25,6 +25,7 @@ import { ItemDetailComponent } from './pages/item-detail/item-detail.component';
 import { MyRequestsComponent } from './pages/my-requests/my-requests.component';
 import { NotificationsComponent } from './pages/notifications/notifications.component';
 import { ChatComponent } from './pages/chat/chat.component';
+import { SafeUrlPipe } from './safe-url.pipe';
 
 
 @NgModule({
@@ -43,6 +44,7 @@ import { ChatComponent } from './pages/chat/chat.component';
     MyRequestsComponent,
     NotificationsComponent,
     ChatComponent,
+    SafeUrlPipe,
   ],
   imports: [
     BrowserModule,

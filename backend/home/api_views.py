@@ -1,5 +1,5 @@
 from .serializers import UserRegistrationSerializer, UserProfileSerializer, ItemRequestSerializer, MessageSerializer
-from .models import ItemRequest, Message
+from .models import ItemRequest, Message, Profile
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, update_session_auth_hash
 from django.core.mail import send_mail
@@ -124,6 +124,7 @@ def api_password_reset_request(request):
             return Response({"error": "User with this email does not exist."}, status=status.HTTP_400_BAD_REQUEST)
     return Response({"error": "Email is required."}, status=status.HTTP_400_BAD_REQUEST)
 
+
 @api_view(['POST'])
 @permission_classes([AllowAny])  # Allow anyone to reset password using a valid link
 def api_password_reset_confirm(request, uidb64, token):
@@ -175,7 +176,7 @@ def api_change_password(request):
         'message': 'Password has been changed successfully.',
         'token': new_token.key  # Return the new token for API authentication
     }, status=status.HTTP_200_OK)    
-
+"""
 @api_view(['GET', 'PUT'])
 @permission_classes([IsAuthenticated])
 def profile_view(request):
@@ -203,8 +204,44 @@ def profile_view(request):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+"""
+@api_view(['GET', 'PUT'])
+@permission_classes([IsAuthenticated])
+def profile_view(request):
+    user = request.user
 
-    
+    # Ensure the profile exists; create if missing
+    profile, created = Profile.objects.get_or_create(user=user)
+
+    if request.method == 'GET':
+        serializer = UserProfileSerializer(profile)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    elif request.method == 'PUT':
+        # Check for username and email in the request and update them
+        username = request.data.get('username')
+        if username and username != user.username:
+            if User.objects.filter(username=username).exclude(id=user.id).exists():
+                return Response({'error': 'Username is already taken.'}, status=status.HTTP_400_BAD_REQUEST)
+            user.username = username
+
+        email = request.data.get('email')
+        if email and email != user.email:
+            if User.objects.filter(email=email).exclude(id=user.id).exists():
+                return Response({'error': 'Email is already in use.'}, status=status.HTTP_400_BAD_REQUEST)
+            user.email = email
+
+        user.save()  # Save updates to the User model
+
+        # Update profile fields
+        serializer = UserProfileSerializer(profile, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 # Check Username Availability
 @api_view(['POST'])
 @permission_classes([AllowAny])  # Explicitly allow unauthenticated access

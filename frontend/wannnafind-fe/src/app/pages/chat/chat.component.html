@@ -1,4 +1,5 @@
 <div class="chat-container">
+  <!-- Previous Chats Section -->
   <div class="previous-chats">
     <h3>Previous Chats</h3>
     <ul>
@@ -12,23 +13,33 @@
       </li>
     </ul>
   </div>
+
+  <!-- Current Chat Section -->
   <div class="current-chat">
-    <div *ngIf="!selectedUser">Select a chat to view messages.</div>
+    <div *ngIf="!selectedUser" class="empty-chat">
+      Select a user to start chatting.
+    </div>
+
     <div *ngIf="selectedUser">
       <h3>Chat with {{ selectedUser.username }}</h3>
       <div class="chat-history">
-        <div *ngFor="let message of currentChat">
-          <p
-            [class]="
-              message.sender === selectedUser.username ? 'received' : 'sent'
-            "
-          >
-            {{ message.content }}
-          </p>
+        <div
+          *ngFor="let message of currentChat"
+          class="message"
+          [class]="
+            message.sender === selectedUser.username ? 'received' : 'sent'
+          "
+        >
+          {{ message.content }}
         </div>
       </div>
-      <textarea [(ngModel)]="newMessage"></textarea>
-      <button (click)="sendMessage()">Send</button>
+      <div class="chat-input">
+        <textarea
+          [(ngModel)]="newMessage"
+          placeholder="Type your message..."
+        ></textarea>
+        <button (click)="sendMessage()">Send</button>
+      </div>
     </div>
   </div>
 </div>

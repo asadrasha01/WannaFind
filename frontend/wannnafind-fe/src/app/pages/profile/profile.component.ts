@@ -7,19 +7,19 @@ import { AuthService } from '../../services/auth.service';
   styleUrls: ['./profile.component.scss'],
 })
 export class ProfileComponent implements OnInit {
-  currentUsername: string = '';
-  currentEmail: string = '';
-  newUsername: string = '';
-  newEmail: string = '';
-  currentPassword: string = '';
-  newPassword: string = '';
+  profile: any = {};
+  countries: string[] = [
+    'United States',
+    'Canada',
+    'United Kingdom',
+    'India',
+    'Australia',
+  ];
   usernameAvailable: boolean | null = null;
   emailAvailable: boolean | null = null;
-  usernameMessage: string = '';
-  emailMessage: string = '';
-  updateMessage: string = '';
-  passwordMessage: string = '';
-  passwordError: string = '';
+  isEditing: boolean = false;
+  isEditingUsername: boolean = false;
+  isEditingEmail: boolean = false;
 
   constructor(private authService: AuthService) {}
 
@@ -28,106 +28,107 @@ export class ProfileComponent implements OnInit {
   }
 
   loadProfile(): void {
-    this.authService.getProfile().subscribe(
-      (data: any) => {
-        this.currentUsername = data.username || '';
-        this.currentEmail = data.email || '';
+    this.authService.getUserProfile().subscribe(
+      (response) => {
+        this.profile = response;
       },
       (error) => {
-        console.error('Error fetching profile:', error);
+        console.error('Error loading profile:', error);
       }
     );
   }
 
-  checkUsernameAvailability(): void {
-    if (!this.newUsername.trim()) {
-      this.usernameMessage = 'Username cannot be empty.';
-      this.usernameAvailable = null;
-      return;
-    }
-    this.authService.checkUsername(this.newUsername).subscribe(
-      (response: any) => {
-        this.usernameAvailable = response.available;
-        this.usernameMessage = response.available
-          ? 'Username is available.'
-          : 'Username is already taken.';
-      },
-      (error) => {
-        console.error('Error checking username:', error);
-        this.usernameMessage = 'An error occurred. Please try again.';
-      }
-    );
+  toggleEdit(): void {
+    this.isEditing = !this.isEditing;
   }
 
-  checkEmailAvailability(): void {
-    if (!this.newEmail.trim()) {
-      this.emailMessage = 'Email cannot be empty.';
-      this.emailAvailable = null;
-      return;
-    }
-    this.authService.checkEmail(this.newEmail).subscribe(
-      (response: any) => {
-        this.emailAvailable = response.available;
-        this.emailMessage = response.available
-          ? 'Email is available.'
-          : 'Email is already in use.';
-      },
-      (error) => {
-        console.error('Error checking email:', error);
-        this.emailMessage = 'An error occurred. Please try again.';
-      }
-    );
+  toggleEditUsername(): void {
+    this.isEditingUsername = true;
   }
 
-  saveChanges(): void {
-    const updatedData: any = {};
-    if (this.newUsername) updatedData.username = this.newUsername;
-    if (this.newEmail) updatedData.email = this.newEmail;
+  toggleEditEmail(): void {
+    this.isEditingEmail = true;
+  }
 
-    this.authService.updateProfile(updatedData).subscribe(
-      (response: any) => {
-        this.updateMessage = 'Profile updated successfully!';
+  saveProfile(): void {
+    console.log('Updating profile with data:', this.profile);
+    this.authService.updateProfile(this.profile).subscribe(
+      (response) => {
+        alert('Profile updated successfully.');
+        this.isEditing = false;
         this.loadProfile();
-        this.resetFields();
       },
       (error) => {
         console.error('Error updating profile:', error);
-        this.updateMessage =
-          error.error?.error || 'An error occurred while updating the profile.';
+        alert('Failed to update profile.');
       }
     );
   }
 
-  changePassword(): void {
-    if (!this.currentPassword || !this.newPassword) {
-      this.passwordError = 'Both fields are required.';
-      return;
-    }
+  saveUsername(): void {
     this.authService
-      .changePassword(this.currentPassword, this.newPassword)
+      .updateProfile({ username: this.profile.username })
       .subscribe(
-        (response: any) => {
-          this.passwordMessage =
-            response.message || 'Password changed successfully!';
-          this.passwordError = '';
-          this.currentPassword = '';
-          this.newPassword = '';
+        (response) => {
+          alert('Username updated successfully.');
+          this.isEditingUsername = false;
+          this.loadProfile();
         },
-        (error: any) => {
-          console.error('Error changing password:', error);
-          this.passwordError =
-            error.error?.error || 'An error occurred. Please try again.';
-          this.passwordMessage = '';
+        (error) => {
+          console.error('Error updating username:', error);
+          alert('Failed to update username.');
         }
       );
   }
 
-  resetFields(): void {
-    this.newUsername = '';
-    this.newEmail = '';
-    this.usernameAvailable = null;
-    this.emailAvailable = null;
-    this.usernameMessage = '';
-    this.emailMessage = '';
+  saveEmail(): void {
+    this.authService.updateProfile({ email: this.profile.email }).subscribe(
+      (response) => {
+        alert('Email updated successfully.');
+        this.isEditingEmail = false;
+        this.loadProfile();
+      },
+      (error) => {
+        console.error('Error updating email:', error);
+        alert('Failed to update email.');
+      }
+    );
+  }
+
+  cancelEditUsername(): void {
+    this.isEditingUsername = false;
+    this.loadProfile();
+  }
+
+  cancelEditEmail(): void {
+    this.isEditingEmail = false;
+    this.loadProfile();
+  }
+
+  cancelEdit(): void {
+    this.isEditing = false;
+    this.loadProfile();
+  }
+
+  onUsernameChange(username: string): void {
+    this.authService.checkUsernameAvailability(username).subscribe(
+      (response) => {
+        this.usernameAvailable = response.available;
+      },
+      (error) => {
+        console.error('Error checking username availability:', error);
+      }
+    );
+  }
+
+  onEmailChange(email: string): void {
+    this.authService.checkEmailAvailability(email).subscribe(
+      (response) => {
+        this.emailAvailable = response.available;
+      },
+      (error) => {
+        console.error('Error checking email availability:', error);
+      }
+    );
   }
 }
