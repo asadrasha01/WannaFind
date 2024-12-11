@@ -122,6 +122,17 @@ def activate(request, uidb64, token):
         messages.error(request, 'The activation link is invalid or has expired.')
         return redirect('home')
 
+def update_profile(request):
+    if request.method == 'POST':
+        profile_form = ProfileUpdateForm(request.POST, request.FILES, instance=request.user.profile)
+        if profile_form.is_valid():
+            profile_form.save()
+            return redirect('profile')  # Replace with the name of your profile view
+    else:
+        profile_form = ProfileUpdateForm(instance=request.user.profile)
+
+    return render(request, 'profile_update.html', {'profile_form': profile_form})
+
 def password_reset_request(request):
     if request.method == "POST":
         password_reset_form = PasswordResetForm(request.POST)

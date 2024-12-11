@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
@@ -6,20 +6,12 @@ import { AuthService } from '../../services/auth.service';
   templateUrl: './profile.component.html',
   styleUrls: ['./profile.component.scss'],
 })
-export class ProfileComponent implements OnInit {
+export class ProfileComponent {
   profile: any = {};
-  countries: string[] = [
-    'United States',
-    'Canada',
-    'United Kingdom',
-    'India',
-    'Australia',
-  ];
-  usernameAvailable: boolean | null = null;
-  emailAvailable: boolean | null = null;
-  isEditing: boolean = false;
-  isEditingUsername: boolean = false;
-  isEditingEmail: boolean = false;
+  editingField: string | null = null; // 'general', 'username', 'email'
+  editValue: string = '';
+  availabilityStatus: string = ''; // 'available', 'unavailable', 'error'
+  availabilityMessage: string = '';
 
   constructor(private authService: AuthService) {}
 
@@ -27,10 +19,12 @@ export class ProfileComponent implements OnInit {
     this.loadProfile();
   }
 
+  // Load user profile from backend
   loadProfile(): void {
-    this.authService.getUserProfile().subscribe(
-      (response) => {
-        this.profile = response;
+    this.authService.getProfile().subscribe(
+      (profile) => {
+        this.profile = profile;
+        console.log('Loaded profile:', this.profile);
       },
       (error) => {
         console.error('Error loading profile:', error);
@@ -38,97 +32,107 @@ export class ProfileComponent implements OnInit {
     );
   }
 
-  toggleEdit(): void {
-    this.isEditing = !this.isEditing;
+  // Get initials from name and surname
+  getInitials(name: string, surname: string): string {
+    return ((name?.[0] || '') + (surname?.[0] || '')).toUpperCase();
   }
 
-  toggleEditUsername(): void {
-    this.isEditingUsername = true;
+  // Initiate editing of a specific field
+  editField(field: string): void {
+    this.editingField = field;
+    if (field === 'username' || field === 'email') {
+      this.editValue = this.profile[field];
+    } else if (field === 'general') {
+      // No single editValue for general fields
+    }
+    this.availabilityStatus = '';
+    this.availabilityMessage = '';
   }
 
-  toggleEditEmail(): void {
-    this.isEditingEmail = true;
+  // Cancel editing
+  cancelEdit(): void {
+    this.editingField = null;
+    this.editValue = '';
+    this.availabilityStatus = '';
+    this.availabilityMessage = '';
+    this.loadProfile(); // Reload profile to discard unsaved changes
   }
 
-  saveProfile(): void {
-    console.log('Updating profile with data:', this.profile);
-    this.authService.updateProfile(this.profile).subscribe(
-      (response) => {
-        alert('Profile updated successfully.');
-        this.isEditing = false;
-        this.loadProfile();
+  // Check availability for username and email
+  checkAvailability(field: string, value: string): void {
+    this.availabilityStatus = '';
+    this.availabilityMessage = '';
+
+    if (!value) return;
+
+    const apiCall =
+      field === 'username'
+        ? this.authService.checkUsernameAvailability(value)
+        : this.authService.checkEmailAvailability(value);
+
+    apiCall.subscribe(
+      (response: any) => {
+        this.availabilityStatus = response.available
+          ? 'available'
+          : 'unavailable';
+        this.availabilityMessage = response.message;
       },
       (error) => {
-        console.error('Error updating profile:', error);
-        alert('Failed to update profile.');
+        this.availabilityStatus = 'error';
+        this.availabilityMessage = 'Error checking availability.';
       }
     );
   }
 
-  saveUsername(): void {
-    this.authService
-      .updateProfile({ username: this.profile.username })
-      .subscribe(
-        (response) => {
-          alert('Username updated successfully.');
-          this.isEditingUsername = false;
-          this.loadProfile();
+  // Save edited field
+  saveField(field: string): void {
+    if (field === 'username' || field === 'email') {
+      const updateData: any = { [field]: this.editValue };
+      this.authService.updateProfile(updateData).subscribe(
+        (data) => {
+          this.profile[field] = data[field];
+          this.cancelEdit();
         },
         (error) => {
-          console.error('Error updating username:', error);
-          alert('Failed to update username.');
+          console.error(`Error updating ${field}:`, error);
+          if (error.error && error.error.error) {
+            this.availabilityStatus = 'unavailable';
+            this.availabilityMessage = error.error.error;
+          }
         }
       );
+    } else if (field === 'general') {
+      const updateData: any = {
+        name: this.profile.profile.name,
+        surname: this.profile.profile.surname,
+        phone_number: this.profile.profile.phone_number,
+        city: this.profile.profile.city,
+        country: this.profile.profile.country,
+      };
+      this.authService.updateProfile(updateData).subscribe(
+        (data) => {
+          this.profile = data;
+          this.cancelEdit();
+        },
+        (error) => {
+          console.error('Error updating profile:', error);
+        }
+      );
+    }
   }
 
-  saveEmail(): void {
-    this.authService.updateProfile({ email: this.profile.email }).subscribe(
-      (response) => {
-        alert('Email updated successfully.');
-        this.isEditingEmail = false;
-        this.loadProfile();
-      },
-      (error) => {
-        console.error('Error updating email:', error);
-        alert('Failed to update email.');
-      }
-    );
-  }
-
-  cancelEditUsername(): void {
-    this.isEditingUsername = false;
-    this.loadProfile();
-  }
-
-  cancelEditEmail(): void {
-    this.isEditingEmail = false;
-    this.loadProfile();
-  }
-
-  cancelEdit(): void {
-    this.isEditing = false;
-    this.loadProfile();
-  }
-
-  onUsernameChange(username: string): void {
-    this.authService.checkUsernameAvailability(username).subscribe(
-      (response) => {
-        this.usernameAvailable = response.available;
-      },
-      (error) => {
-        console.error('Error checking username availability:', error);
-      }
-    );
-  }
-
-  onEmailChange(email: string): void {
-    this.authService.checkEmailAvailability(email).subscribe(
-      (response) => {
-        this.emailAvailable = response.available;
-      },
-      (error) => {
-        console.error('Error checking email availability:', error);
-      }
-    );
+  // Handle profile image selection
+  onProfileImageSelected(event: any): void {
+    const file = event.target.files[0];
+    if (file) {
+      this.authService.uploadProfileImage(file).subscribe({
+        next: (response) => {
+          this.profile.profile.profile_image = response.profile_image;
+        },
+        error: (err) => {
+          console.error('Error uploading image:', err);
+        },
+      });
+    }
   }
 }

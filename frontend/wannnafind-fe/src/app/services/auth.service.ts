@@ -33,43 +33,50 @@ export class AuthService {
     return this.http.post(`${this.apiUrl}/logout/`, {});
   }
 
-  getUserProfile(): Observable<any> {
-    const url = `${this.apiUrl}/profile/`;
-    const headers = this.getAuthHeaders();
-    return this.http.get(url, { headers });
+  getProfile(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/profile/`, {
+      headers: this.getAuthHeaders(),
+    });
   }
 
-  updateUserProfile(data: any): Observable<any> {
-    const url = `${this.apiUrl}/profile/`;
-    const headers = this.getAuthHeaders();
-    return this.http.put(url, data, { headers });
+  getUserProfile(userId: number): Observable<any> {
+    return this.http.get(`${this.apiUrl}/user-profile/${userId}/`, {
+      headers: this.getAuthHeaders(),
+    });
   }
 
-  checkUsernameAvailability(
-    username: string
-  ): Observable<{ available: boolean }> {
-    return this.http.post<{ available: boolean }>(
-      `${this.apiUrl}/check-username/`,
-      { username }
+  updateProfile(payload: any): Observable<any> {
+    return this.http.put(`${this.apiUrl}/profile/`, payload, {
+      headers: this.getAuthHeaders(),
+    });
+  }
+
+  checkUsernameAvailability(username: string): Observable<any> {
+    return this.http.get<any>(
+      `${this.apiUrl}/check-username/?username=${username}`,
+      {
+        headers: this.getAuthHeaders(),
+      }
     );
   }
 
-  checkEmailAvailability(email: string): Observable<{ available: boolean }> {
-    return this.http.post<{ available: boolean }>(
-      `${this.apiUrl}/check-email/`,
-      { email }
+  checkEmailAvailability(email: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/check-email/?email=${email}`, {
+      headers: this.getAuthHeaders(),
+    });
+  }
+
+  uploadProfileImage(file: File): Observable<any> {
+    const formData = new FormData();
+    formData.append('profile_image', file);
+
+    return this.http.post<any>(
+      `${this.apiUrl}/upload-profile-image/`,
+      formData,
+      {
+        headers: this.getAuthHeaders(false), // Disable Content-Type header for FormData
+      }
     );
-  }
-
-  updateProfileImage(formData: FormData): Observable<any> {
-    const url = `${this.apiUrl}/profile/`; // Assuming the same endpoint handles profile image updates
-    const headers = this.getAuthHeaders();
-    return this.http.put(url, formData, { headers });
-  }
-
-  updateProfile(data: any): Observable<any> {
-    const headers = this.getAuthHeaders();
-    return this.http.put(`${this.apiUrl}/profile/`, data, { headers });
   }
 
   passwordResetRequest(email: string): Observable<any> {
@@ -98,23 +105,19 @@ export class AuthService {
   }
 
   // Get Authorization headers
-  getAuthHeaders(): HttpHeaders {
-    if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+  getAuthHeaders(includeToken: boolean = true): HttpHeaders {
+    const headers: { [key: string]: string } = {
+      'Content-Type': 'application/json',
+    };
+
+    if (includeToken && typeof window !== 'undefined' && localStorage) {
       const token = localStorage.getItem('token');
       if (token) {
-        console.log('Using token:', token); // Debug log
-        return new HttpHeaders({
-          Authorization: `Token ${token}`,
-          'Content-Type': 'application/json',
-        });
-      } else {
-        console.error('Authentication token is missing.');
-        throw new Error('User is not authenticated.');
+        headers['Authorization'] = `Token ${token}`;
       }
-    } else {
-      console.error('localStorage is not available in this environment.');
-      throw new Error('localStorage is not accessible.');
     }
+
+    return new HttpHeaders(headers);
   }
 
   submitItemRequest(data: FormData): Observable<any> {
@@ -139,7 +142,7 @@ export class AuthService {
   getItemDetail(itemId: string): Observable<any> {
     const url = `${this.apiUrl}/item-request-detail/${itemId}/`;
     const headers = this.getAuthHeaders();
-    return this.http.get(url, { headers }); // Pass headers in the options object
+    return this.http.get(url, { headers });
   }
 
   getMyRequests(): Observable<any> {
@@ -163,17 +166,25 @@ export class AuthService {
 
   sendRequest(
     itemId: number,
-    content: string,
+    messageContent: string,
     receiverId?: number
   ): Observable<any> {
-    const url = `${this.apiUrl}/send-message/${itemId}/`;
-    const headers = this.getAuthHeaders();
-    const body = {
-      content,
-      receiver_id: receiverId, // Optional
+    const payload: any = {
+      content: messageContent,
     };
 
-    return this.http.post(url, body, { headers });
+    // If the item is self-posted, include receiver_id
+    if (receiverId) {
+      payload.receiver_id = receiverId;
+    }
+
+    return this.http.post<any>(
+      `${this.apiUrl}/send-message/${itemId}/`,
+      payload,
+      {
+        headers: this.getAuthHeaders(),
+      }
+    );
   }
 
   getNotifications(): Observable<any> {
@@ -215,5 +226,28 @@ export class AuthService {
     const headers = this.getAuthHeaders();
     const body = { receiver_id: receiverId, content, item_id: itemId };
     return this.http.post(url, body, { headers });
+  }
+
+  closeDeal(itemId: number, otherUserId: number): Observable<any> {
+    const url = `${this.apiUrl}/close-deal/${itemId}/${otherUserId}/`;
+    return this.http.post(url, {}, { headers: this.getAuthHeaders() });
+  }
+
+  deleteChat(itemId: number, otherUserId: number): Observable<any> {
+    const url = `${this.apiUrl}/delete-chat/${itemId}/${otherUserId}/`;
+    return this.http.delete(url, { headers: this.getAuthHeaders() });
+  }
+
+  leaveFeedback(
+    revieweeId: number,
+    comment: string,
+    rating: number
+  ): Observable<any> {
+    const url = `${this.apiUrl}/leave-feedback/${revieweeId}/`;
+    return this.http.post(
+      url,
+      { comment, rating },
+      { headers: this.getAuthHeaders() }
+    );
   }
 }

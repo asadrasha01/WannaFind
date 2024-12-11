@@ -1,3 +1,5 @@
+/* src/app/pages/item-list/item-list.component.scss */
+
 .item-list-container {
   max-width: 1200px;
   margin: 0 auto;
@@ -8,6 +10,7 @@
   font-size: 2rem;
   margin-bottom: 20px;
   text-align: center;
+  color: #333;
 }
 
 .error-message {
@@ -24,153 +27,264 @@
 
 .items-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 25px;
 }
 
 .item-card {
   background: #fff;
   border: 1px solid #ddd;
-  border-radius: 10px;
-  padding: 15px;
+  border-radius: 12px;
+  padding: 20px;
   text-align: center;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+  }
+
+  .item-image {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    transition: opacity 0.3s ease;
+
+    &:hover {
+      opacity: 0.9;
+    }
+  }
+
+  .item-title {
+    font-size: 1.3rem;
+    font-weight: bold;
+    margin: 10px 0;
+    color: #007bff;
+  }
+
+  p {
+    font-size: 0.95rem;
+    color: #555;
+    margin: 5px 0;
+  }
+
+  .item-user {
+    font-style: italic;
+    color: #888;
+  }
 }
 
-.item-image {
-  width: 100%;
-  height: 150px;
-  object-fit: cover;
-  border-radius: 8px;
-  margin-bottom: 10px;
-}
-
-.item-title {
-  font-size: 1.2rem;
-  font-weight: bold;
-  margin: 10px 0;
-}
-
-.item-description {
-  font-size: 0.9rem;
-  color: #555;
-}
-
-.modal {
+/* Modal Overlay */
+.modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(5px);
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  padding: 20px;
 }
 
+/* Modal Content */
 .modal-content {
   background: #fff;
-  padding: 20px;
-  border-radius: 10px;
-  text-align: center;
-  max-width: 500px;
-  width: 90%;
+  padding: 25px;
+  border-radius: 12px;
+  position: relative;
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  animation: fadeIn 0.3s ease-out;
 }
 
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Close Button */
+.close-button {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  color: #aaa;
+  cursor: pointer;
+  transition: color 0.3s ease;
+
+  &:hover {
+    color: #000;
+  }
+}
+
+/* Modal Image */
 .modal-image {
   width: 100%;
-  border-radius: 8px;
+  height: 250px;
+  object-fit: cover;
+  border-radius: 10px;
   margin-bottom: 20px;
 }
 
+/* Modal Title */
 .modal-title {
-  font-size: 1.5rem;
+  font-size: 1.8rem;
   margin-bottom: 10px;
+  color: #333;
 }
 
+/* Modal Description */
 .modal-description {
   font-size: 1rem;
   color: #555;
+  margin-bottom: 20px;
 }
 
+/* Request Button */
 .request-button {
   background-color: #4caf50;
   color: white;
-  font-size: 1.2rem;
-  padding: 10px 20px;
+  font-size: 1.1rem;
+  padding: 12px 24px;
   border: none;
   border-radius: 8px;
   cursor: pointer;
   transition: background-color 0.3s ease;
-  margin-top: 10px;
+  margin-top: 15px;
 
   &:hover {
     background-color: #45a049;
   }
 }
 
+/* Request Form */
 .request-form {
-  margin-top: 20px;
+  margin-top: 25px;
   padding: 20px;
   background: #f9f9f9;
-  border-radius: 12px;
+  border-radius: 10px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
   gap: 15px;
+}
 
-  .text-field {
-    width: 100%;
-    font-size: 1rem;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    resize: none;
-    transition: border-color 0.3s ease;
+.text-field {
+  width: 100%;
+  font-size: 1rem;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  resize: vertical;
+  transition: border-color 0.3s ease;
 
-    &:focus {
-      outline: none;
-      border-color: #4caf50;
-      box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
+  &:focus {
+    outline: none;
+    border-color: #4caf50;
+    box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
+  }
+}
+
+/* Request Buttons */
+.request-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+}
+
+.send-button {
+  background-color: #2196f3;
+  color: white;
+  font-size: 1rem;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+
+  &:hover {
+    background-color: #1e88e5;
+  }
+}
+
+.cancel-button {
+  background-color: #f44336;
+  color: white;
+  font-size: 1rem;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+
+  &:hover {
+    background-color: #e53935;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .items-grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 20px;
+  }
+
+  .item-card {
+    padding: 15px;
+
+    .item-image {
+      height: 140px;
+    }
+
+    .item-title {
+      font-size: 1.1rem;
     }
   }
 
-  .request-buttons {
-    display: flex;
-    justify-content: flex-end;
-    gap: 15px;
+  .modal-content {
+    padding: 20px;
+  }
 
-    .send-button {
-      background-color: #2196f3;
-      color: white;
-      font-size: 1rem;
-      padding: 10px 15px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
+  .modal-image {
+    height: 200px;
+  }
 
-      &:hover {
-        background-color: #1e88e5;
-      }
-    }
+  .modal-title {
+    font-size: 1.5rem;
+  }
 
-    .cancel-button {
-      background-color: #f44336;
-      color: white;
-      font-size: 1rem;
-      padding: 10px 15px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
+  .request-button {
+    font-size: 1rem;
+    padding: 10px 20px;
+  }
 
-      &:hover {
-        background-color: #e53935;
-      }
-    }
+  .text-field {
+    font-size: 0.95rem;
+    padding: 10px;
+  }
+
+  .send-button,
+  .cancel-button {
+    font-size: 0.95rem;
+    padding: 8px 16px;
   }
 }

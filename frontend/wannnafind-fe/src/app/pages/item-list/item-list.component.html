@@ -1,3 +1,5 @@
+<!-- src/app/pages/item-list/item-list.component.html -->
+
 <div class="item-list-container">
   <h2 class="header">Items List</h2>
   <p *ngIf="errorMessage" class="error-message">{{ errorMessage }}</p>
@@ -19,9 +21,22 @@
   </div>
 
   <!-- Modal -->
-  <div class="modal" *ngIf="selectedItem">
-    <div class="modal-content">
-      <button class="close-button" (click)="closeModal()">×</button>
+  <div
+    class="modal-overlay"
+    *ngIf="selectedItem"
+    (click)="closeModal()"
+    aria-modal="true"
+    role="dialog"
+    tabindex="-1"
+  >
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <button
+        class="close-button"
+        (click)="closeModal()"
+        aria-label="Close Modal"
+      >
+        ×
+      </button>
       <img
         [src]="'http://127.0.0.1:8000' + selectedItem.image"
         alt="{{ selectedItem.title }}"
@@ -32,7 +47,7 @@
       <p><strong>Condition:</strong> {{ selectedItem.condition }}</p>
       <p class="modal-description">{{ selectedItem.description }}</p>
 
-      <!-- Beautiful Button -->
+      <!-- Request Button -->
       <button class="request-button" (click)="toggleRequestForm()">
         Send Request
       </button>
@@ -44,6 +59,7 @@
           placeholder="Write your message..."
           rows="5"
           class="text-field"
+          aria-label="Request Message"
         ></textarea>
         <div class="request-buttons">
           <button class="send-button" (click)="sendRequest()">Send</button>

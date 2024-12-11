@@ -35,7 +35,7 @@ ALLOWED_HOSTS = []
 INSTALLED_APPS = [   
     'home',
     'corsheaders',  
-    #'home.apps.HomeConfig',   
+ 
     # Django apps     
     'django.contrib.admin',
     'django.contrib.auth',
@@ -56,7 +56,7 @@ CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            "hosts": [('127.0.0.1', 6379)],  # Update this if your Redis host differs
+            "hosts": [('127.0.0.1', 6379)], 
         },
     },
 }

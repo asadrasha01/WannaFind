@@ -27,7 +27,6 @@ import { NotificationsComponent } from './pages/notifications/notifications.comp
 import { ChatComponent } from './pages/chat/chat.component';
 import { SafeUrlPipe } from './safe-url.pipe';
 
-
 @NgModule({
   declarations: [
     AppComponent,

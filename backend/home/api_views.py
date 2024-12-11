@@ -1,5 +1,5 @@
-from .serializers import UserRegistrationSerializer, UserProfileSerializer, ItemRequestSerializer, MessageSerializer
-from .models import ItemRequest, Message, Profile
+from .serializers import ItemRequestSerializer, MessageSerializer, UserRegistrationSerializer, UserProfileSerializer, FeedbackSerializer
+from .models import ItemRequest, Message, Profile, Deal, Feedback
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, update_session_auth_hash
 from django.core.mail import send_mail
@@ -15,39 +15,35 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
-from django.db.models import Q, Max
-from django.utils.timezone import now
-from rest_framework.exceptions import ValidationError
+from django.db.models import Q
+import logging
 
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def api_register(request):
-    try:
-        serializer = UserRegistrationSerializer(data=request.data)
-        
-        if serializer.is_valid():
-            user = serializer.save()
-            user.is_active = False
-            user.save()
+    serializer = UserRegistrationSerializer(data=request.data)
+    
+    if serializer.is_valid():
+        user = serializer.save()
+        user.is_active = False
+        user.save()
 
-            send_activation_email(user, request)
-            return Response({'message': 'Registration successful. Please confirm your email to activate your account.'}, status=201)
-        else:
-            return Response(serializer.errors, status=400)
-    except Exception as e:
-        return Response({'error': str(e)}, status=500)
+        send_activation_email(user, request)
+        return Response({'message': 'Registration successful. Please confirm your email to activate your account.'}, status=201)
+    else:
+        return Response(serializer.errors, status=400)
 
 
 @api_view(['POST'])
-@permission_classes([AllowAny])  # Ensures login is open to unauthenticated users
+@permission_classes([AllowAny])  
 def api_login(request):
     username = request.data.get('username')
     password = request.data.get('password')
     
     user = authenticate(request, username=username, password=password)
     if user is not None:
-        # Ensure the user is active
+        # Ensuring the user is active
         if user.is_active:
             # Generate or retrieve the token
             token, created = Token.objects.get_or_create(user=user)
@@ -60,7 +56,8 @@ def api_login(request):
 @api_view(['POST'])
 def api_logout(request):
     if request.user.is_authenticated:
-        request.user.auth_token.delete()  # Remove token
+        #Removes token
+        request.user.auth_token.delete() 
         return Response({"message": "Logged out successfully"}, status=status.HTTP_200_OK)
     return Response({"error": "Not logged in"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -96,7 +93,8 @@ def send_activation_email(user, request):
     send_mail(subject, message, settings.EMAIL_HOST_USER, [user.email])
 
 @api_view(['POST'])
-@permission_classes([AllowAny])  # Allow anyone to initiate a password reset
+#Allow anyone to initiate a password reset
+@permission_classes([AllowAny])  
 def api_password_reset_request(request):
     email = request.data.get('email')
     if email:
@@ -104,11 +102,11 @@ def api_password_reset_request(request):
         if associated_user:
             subject = "Password Reset Requested"
             
-            # Generate the token and UID
+            # Generates the token and UID
             token = default_token_generator.make_token(associated_user)
             uid = urlsafe_base64_encode(force_bytes(associated_user.pk))
 
-            # Generate the reset link using reverse to match the correct pattern
+            # Generates the reset link using reverse to match the correct pattern
             reset_link = request.build_absolute_uri(
                 reverse('password_reset_confirm', kwargs={'uidb64': uid, 'token': token})
             )
@@ -126,7 +124,8 @@ def api_password_reset_request(request):
 
 
 @api_view(['POST'])
-@permission_classes([AllowAny])  # Allow anyone to reset password using a valid link
+# Allows anyone to reset password using a valid link
+@permission_classes([AllowAny]) 
 def api_password_reset_confirm(request, uidb64, token):
     try:
         uid = force_str(urlsafe_base64_decode(uidb64))
@@ -146,7 +145,8 @@ def api_password_reset_confirm(request, uidb64, token):
         return Response({"error": "The reset link is invalid or has expired."}, status=status.HTTP_400_BAD_REQUEST)
     
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])  # Only logged-in users can access this
+ #Only logged-in users can access this
+@permission_classes([IsAuthenticated])
 def api_change_password(request):
     # Get the logged-in user
     user = request.user
@@ -168,103 +168,122 @@ def api_change_password(request):
     # Update session authentication hash to prevent logout after password change
     update_session_auth_hash(request, user)
 
-    # Optionally refresh the user's token (if using token-based authentication)
+    # Optionally refresh the user's token
     Token.objects.filter(user=user).delete()
     new_token = Token.objects.create(user=user)
 
     return Response({
         'message': 'Password has been changed successfully.',
-        'token': new_token.key  # Return the new token for API authentication
+        'token': new_token.key  
     }, status=status.HTTP_200_OK)    
-"""
-@api_view(['GET', 'PUT'])
-@permission_classes([IsAuthenticated])
-def profile_view(request):
-    user = request.user
-    serializer = UserProfileSerializer(user)
-    
-    if request.method == 'GET':
-        # Return the current user's profile data
-        serializer = UserProfileSerializer(user)
-        return Response(serializer.data)
 
-    elif request.method == 'PUT':
-        # Allow updating username, email, or other fields
-        data = request.data
-        if 'username' in data:
-            if User.objects.filter(username=data['username']).exclude(id=user.id).exists():
-                return Response({'error': 'Username is already taken.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        if 'email' in data:
-            if User.objects.filter(email=data['email']).exclude(id=user.id).exists():
-                return Response({'error': 'Email is already in use.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        serializer = UserProfileSerializer(user, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-"""
 @api_view(['GET', 'PUT'])
 @permission_classes([IsAuthenticated])
 def profile_view(request):
     user = request.user
 
-    # Ensure the profile exists; create if missing
+    # Ensures the Profile exists for the User
     profile, created = Profile.objects.get_or_create(user=user)
 
     if request.method == 'GET':
-        serializer = UserProfileSerializer(profile)
+        # Serialize the User instance, including the Profile
+        serializer = UserProfileSerializer(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     elif request.method == 'PUT':
-        # Check for username and email in the request and update them
+        # Updates username and email
         username = request.data.get('username')
+        email = request.data.get('email')
+
         if username and username != user.username:
             if User.objects.filter(username=username).exclude(id=user.id).exists():
                 return Response({'error': 'Username is already taken.'}, status=status.HTTP_400_BAD_REQUEST)
             user.username = username
 
-        email = request.data.get('email')
         if email and email != user.email:
             if User.objects.filter(email=email).exclude(id=user.id).exists():
                 return Response({'error': 'Email is already in use.'}, status=status.HTTP_400_BAD_REQUEST)
             user.email = email
 
-        user.save()  # Save updates to the User model
+        user.save()
 
-        # Update profile fields
-        serializer = UserProfileSerializer(profile, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
+        # Update Profile fields
+        profile.name = request.data.get('name', profile.name)
+        profile.surname = request.data.get('surname', profile.surname)
+        profile.phone_number = request.data.get('phone_number', profile.phone_number)
+        profile.city = request.data.get('city', profile.city)
+        profile.country = request.data.get('country', profile.country)
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        # Handle Profile Image Upload
+        if 'profile_image' in request.FILES:
+            profile.profile_image = request.FILES['profile_image']
 
+        profile.save()
 
-# Check Username Availability
+        # Serialize the updated User instance
+        serializer = UserProfileSerializer(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+# Checks Username Availability
+@api_view(['GET'])
+@permission_classes([])
+def check_username_availability(request):
+    username = request.query_params.get('username', None)
+    if not username:
+        return Response({'error': 'Username is required.'}, status=status.HTTP_400_BAD_REQUEST)
+    if User.objects.filter(username=username).exists():
+        return Response({'available': False, 'message': 'Username is already taken.'}, status=status.HTTP_200_OK)
+    return Response({'available': True, 'message': 'Username is available.'}, status=status.HTTP_200_OK)
+
+# Checks Email Availability
+@api_view(['GET'])
+@permission_classes([])
+def check_email_availability(request):
+    email = request.query_params.get('email', None)
+    if not email:
+        return Response({'error': 'Email is required.'}, status=status.HTTP_400_BAD_REQUEST)
+    if User.objects.filter(email=email).exists():
+        return Response({'available': False, 'message': 'Email is already in use.'}, status=status.HTTP_200_OK)
+    return Response({'available': True, 'message': 'Email is available.'}, status=status.HTTP_200_OK)
+
+logger = logging.getLogger(__name__)
+
+# Upload Profile Image
 @api_view(['POST'])
-@permission_classes([AllowAny])  # Explicitly allow unauthenticated access
-def check_username(request):
-    username = request.data.get('username')
-    if username and User.objects.filter(username=username).exists():
-        return Response({'available': False}, status=status.HTTP_200_OK)
-    return Response({'available': True}, status=status.HTTP_200_OK)
+@permission_classes([IsAuthenticated])
+def upload_profile_image(request):
+    user = request.user
+    profile = user.profile
 
-# Check Email Availability
-@api_view(['POST'])
-@permission_classes([AllowAny])  # Explicitly allow unauthenticated access
-def check_email(request):
-    email = request.data.get('email')
-    if email and User.objects.filter(email=email).exists():
-        return Response({'available': False}, status=status.HTTP_200_OK)
-    return Response({'available': True}, status=status.HTTP_200_OK)
+    logger.info(f"Received request from user: {user.username}")
+
+    # Check if a file is included in the request
+    if 'profile_image' not in request.FILES:
+        logger.error('No image file provided in the request.')
+        return Response({'error': 'No image file provided.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    image_file = request.FILES['profile_image']
+
+    # Optional: Validate the image file (e.g., size, format)
+    if image_file.size > 5 * 1024 * 1024:  # 5MB limit
+        logger.error('Uploaded image exceeds the size limit.')
+        return Response({'error': 'Image size should not exceed 5MB.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Save the new profile image
+    profile.profile_image = image_file
+    profile.save()
+
+    logger.info(f"Profile image updated for user: {user.username}")
+
+    return Response({'profile_image': profile.profile_image.url}, status=status.HTTP_200_OK)
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def submit_item(request):
     data = request.data.copy()
-    data['user'] = request.user.id  # Automatically associate the user
+    # Automatically associate the user
+    data['user'] = request.user.id  
 
     if 'image' in request.FILES:
         data['image'] = request.FILES['image']
@@ -295,11 +314,11 @@ def submit_item(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def item_request_detail(request, item_id):
-
     try:
-        item_request = ItemRequest.objects.get(id=item_id, user=request.user)
+        # Allow any authenticated user to view item details
+        item_request = get_object_or_404(ItemRequest, id=item_id)
     except ItemRequest.DoesNotExist:
-        return Response({'error': 'Item request not found or unauthorized.'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'error': 'Item request not found.'}, status=status.HTTP_404_NOT_FOUND)
 
     # Serialize the fetched item request
     serializer = ItemRequestSerializer(item_request)
@@ -338,44 +357,50 @@ def delete_request(request, pk):  # Change item_id to pk
 @permission_classes([IsAuthenticated])
 def item_list(request):
     try:
-        # Exclude the user's own items
+        # Excludes the user's own items
         items = ItemRequest.objects.exclude(user=request.user)
         serializer = ItemRequestSerializer(items, many=True)
         return Response(serializer.data, status=200)
     except Exception as e:
         print("Error in item_list:", str(e))
-        return Response({'error': 'Server error occurred.'}, status=500)
-    
+        return Response({'error': 'Server error occurred.'}, status=500)    
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def send_message_request(request, item_id):
-    item = get_object_or_404(ItemRequest, id=item_id)
-    content = request.data.get('content')
-    receiver_id = request.data.get('receiver_id')
+    try:
+        # Fetch the item; any authenticated user can view item details
+        item = get_object_or_404(ItemRequest, id=item_id)
+        content = request.data.get('content')
+        receiver_id = request.data.get('receiver_id')
 
-    if not content:
-        return Response({'error': 'Message content is required.'}, status=400)
+        if not content:
+            return Response({'error': 'Message content is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    if item.user == request.user:
-        if not receiver_id:
-            return Response({'error': 'Receiver ID is required for self-posted items.'}, status=400)
-        receiver = get_object_or_404(User, id=receiver_id)
-    else:
-        receiver = item.user
+        if item.user == request.user:
+            if not receiver_id:
+                return Response({'error': 'Receiver ID is required for self-posted items.'}, status=status.HTTP_400_BAD_REQUEST)
+            receiver = get_object_or_404(User, id=receiver_id)
+        else:
+            receiver = item.user
 
-    message_data = {
-        'sender': request.user.id,
-        'receiver': receiver.id,
-        'item': item.id,
-        'content': content,
-    }
+        message_data = {
+            'receiver': receiver.id,
+            'item': item.id,
+            'content': content,
+        }
 
-    serializer = MessageSerializer(data=message_data)
-    if serializer.is_valid():
-        serializer.save()
-        return Response({'status': 'success', 'message': 'Message sent successfully.'}, status=201)
-    else:
-        return Response(serializer.errors, status=400)
+        serializer = MessageSerializer(data=message_data, context={'request': request})
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'status': 'success', 'message': 'Message sent successfully.'}, status=status.HTTP_201_CREATED)
+        else:
+            logger.error(f"MessageSerializer errors: {serializer.errors}")
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        logger.error(f"Error in send_message_request: {str(e)}")
+        return Response({'error': 'Internal server error.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -450,6 +475,13 @@ def get_chat_messages(request, item_id, other_user_id):
             'receiver': message.receiver.username,
             'content': message.content,
             'timestamp': message.timestamp,
+            'message_type': 'system' if message.sender == None else 'user',
+            'item_image': item.image.url if item.image else None,
+            'item_title': item.title,
+            'item_description': item.description,
+            'item_category': item.category,
+            'item_brand': item.brand,
+            'item_condition': item.condition,
         }
         for message in messages
     ]
@@ -477,6 +509,10 @@ def send_chat_message(request):
     receiver = get_object_or_404(User, id=receiver_id)
     item = get_object_or_404(ItemRequest, id=item_id)
 
+    # Check if deal is closed (item.active)
+    if not item.active:
+        return Response({'error': 'This deal is closed. No further messages allowed.'}, status=403)
+
     message = Message.objects.create(sender=sender, receiver=receiver, item=item, content=content)
 
     return Response({
@@ -487,4 +523,69 @@ def send_chat_message(request):
         'timestamp': message.timestamp,
     }, status=201)
 
+# Delete Chat
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_chat(request, item_id, other_user_id):
+    user = request.user
+    other_user = get_object_or_404(User, id=other_user_id)
+    item = get_object_or_404(ItemRequest, id=item_id)
 
+    messages = Message.objects.filter(
+        item=item,
+        sender__in=[user, other_user],
+        receiver__in=[user, other_user]
+    )
+
+    messages.delete()
+
+    return Response({'message': 'Chat deleted successfully'}, status=200)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def close_deal(request, item_id, other_user_id):
+    
+    item = get_object_or_404(ItemRequest, id=item_id)
+    other_user = get_object_or_404(User, id=other_user_id)
+    user = request.user
+
+    # Determine roles: assume item.user is the seller
+    if item.user == user:
+        seller = user
+        buyer = other_user
+    else:
+        buyer = user
+        seller = item.user
+
+    # Mark item as inactive (deal closed)
+    item.active = False
+    item.save()
+
+    # Create a Deal record
+    deal = Deal.objects.create(item=item, buyer=buyer, seller=seller)
+
+    return Response({'message': 'Deal closed successfully', 'deal_id': deal.id})
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def leave_feedback(request, reviewee_id):
+    comment = request.data.get('comment', '')
+    rating = request.data.get('rating', 5)
+    reviewee = get_object_or_404(User, id=reviewee_id)
+
+    feedback = Feedback.objects.create(
+        reviewer=request.user,
+        reviewee=reviewee,
+        comment=comment,
+        rating=rating
+    )
+
+    serializer = FeedbackSerializer(feedback)
+    return Response(serializer.data, status=201)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user_profile(request, user_id):
+    user = get_object_or_404(User, id=user_id)
+    serializer = UserProfileSerializer(user)
+    return Response(serializer.data, status=200)

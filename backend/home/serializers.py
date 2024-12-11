@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import ItemRequest, Message
+from .models import ItemRequest, Message, Profile, Feedback
 from django.conf import settings
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
@@ -18,37 +18,42 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         user.set_password(validated_data['password'])
         user.save()
         return user
-    
-    
+
+class FeedbackSerializer(serializers.ModelSerializer):
+    reviewer_username = serializers.CharField(source='reviewer.username', read_only=True)
+
+    class Meta:
+        model = Feedback
+        fields = ['id', 'reviewer', 'reviewee', 'comment', 'rating', 'created_at', 'reviewer_username']
+        read_only_fields = ['reviewer']
+
+class ProfileSerializer(serializers.ModelSerializer):
+    profile_image = serializers.ImageField(required=False, allow_null=True)
+
+    class Meta:
+        model = Profile
+        fields = ['name', 'surname', 'phone_number', 'city', 'country', 'profile_image']
+
 class UserProfileSerializer(serializers.ModelSerializer):
-    # Add profile-related fields explicitly
-    name = serializers.CharField(source='profile.name', required=False)
-    surname = serializers.CharField(source='profile.surname', required=False)
-    phone_number = serializers.CharField(source='profile.phone_number', required=False)
-    city = serializers.CharField(source='profile.city', required=False)
-    country = serializers.CharField(source='profile.country', required=False)
-    profile_image = serializers.ImageField(source='profile.profile_image', required=False)
+    profile = ProfileSerializer()
+    received_feedbacks = FeedbackSerializer(many=True, read_only=True)
 
     class Meta:
         model = User
-        fields = ['username', 'email', 'name', 'surname', 'phone_number', 'city', 'country', 'profile_image']
+        fields = ['username', 'email', 'profile', 'received_feedbacks']
         read_only_fields = ['username', 'email']
 
     def update(self, instance, validated_data):
-        # Update User fields
+        # Update user fields
+        profile_data = validated_data.pop('profile', {})
         instance.username = validated_data.get('username', instance.username)
         instance.email = validated_data.get('email', instance.email)
         instance.save()
 
-        # Update Profile fields
-        profile_data = validated_data.get('profile', {})
+        # Update profile fields
         profile = instance.profile
-        profile.name = profile_data.get('name', profile.name)
-        profile.surname = profile_data.get('surname', profile.surname)
-        profile.phone_number = profile_data.get('phone_number', profile.phone_number)
-        profile.city = profile_data.get('city', profile.city)
-        profile.country = profile_data.get('country', profile.country)
-        profile.profile_image = profile_data.get('profile_image', profile.profile_image)
+        for attr, value in profile_data.items():
+            setattr(profile, attr, value)
         profile.save()
 
         return instance
@@ -58,7 +63,7 @@ class ItemRequestSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = ItemRequest
-        fields = '__all__'  # Ensure all necessary fields are included
+        fields = '__all__'  # All necessary fields are included
 
     def create(self, validated_data):
         # Attach user from the context
@@ -78,11 +83,21 @@ class ItemRequestSerializer(serializers.ModelSerializer):
                 representation['image'] = settings.MEDIA_URL + instance.image.name
         return representation
 
-
 class MessageSerializer(serializers.ModelSerializer):
     sender_username = serializers.CharField(source='sender.username', read_only=True)
     receiver_username = serializers.CharField(source='receiver.username', read_only=True)
+    item_title = serializers.CharField(source='item.title', read_only=True)
+    item = serializers.PrimaryKeyRelatedField(queryset=ItemRequest.objects.all())
 
     class Meta:
         model = Message
-        fields = ['id', 'sender', 'receiver', 'item_title', 'content', 'timestamp', 'is_read']
+        fields = [
+            'id', 'sender', 'receiver', 'item',
+            'sender_username', 'receiver_username', 'item_title',
+            'content', 'timestamp', 'is_read'
+        ]
+        read_only_fields = ['sender']
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        return Message.objects.create(sender=user, **validated_data)

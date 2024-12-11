@@ -42,7 +42,7 @@ class SetPasswordForm(forms.Form):
 class ProfileUpdateForm(forms.ModelForm):
     class Meta:
         model = Profile
-        fields = ['bio', 'phone_number', 'profile_image']
+        fields = ['name', 'surname', 'phone_number', 'city', 'country', 'profile_image']
 
 class CustomPasswordChangeForm(PasswordChangeForm):
     class Meta:

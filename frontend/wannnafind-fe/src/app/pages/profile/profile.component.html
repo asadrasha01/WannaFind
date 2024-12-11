@@ -1,122 +1,195 @@
 <div class="profile-container">
+  <!-- Profile Header -->
   <div class="profile-header">
-    <h2>User Profile</h2>
-    <p>Manage your personal information</p>
-  </div>
-
-  <!-- Non-editable Profile View -->
-  <div *ngIf="!isEditing" class="profile-view">
-    <p>
-      <strong>Username:</strong> {{ profile.username }}
-      <button class="edit-btn" (click)="toggleEditUsername()">
-        Edit Username
+    <!-- Profile Picture -->
+    <div class="profile-picture">
+      <div *ngIf="!profile.profile.profile_image" class="profile-initials">
+        {{ getInitials(profile.profile.name, profile.profile.surname) }}
+      </div>
+      <img
+        *ngIf="profile.profile.profile_image"
+        [src]="profile.profile.profile_image"
+        alt="Profile Picture"
+        class="profile-image"
+      />
+      <input
+        type="file"
+        (change)="onProfileImageSelected($event)"
+        hidden
+        #fileInput
+      />
+      <button class="change-picture-btn" (click)="fileInput.click()">
+        Change Picture
       </button>
-    </p>
-    <p>
-      <strong>Email:</strong> {{ profile.email }}
-      <button class="edit-btn" (click)="toggleEditEmail()">Edit Email</button>
-    </p>
-    <p><strong>Name:</strong> {{ profile.first_name }}</p>
-    <p><strong>Surname:</strong> {{ profile.last_name }}</p>
-    <p><strong>Phone Number:</strong> {{ profile.phone_number }}</p>
-    <p><strong>City:</strong> {{ profile.city }}</p>
-    <p><strong>Country:</strong> {{ profile.country }}</p>
-    <img
-      *ngIf="profile.profile_image"
-      [src]="profile.profile_image | safeUrl"
-      alt="Profile Image"
-    />
-    <button class="edit-btn" (click)="toggleEdit()">Edit Profile</button>
+    </div>
+
+    <!-- Profile Name -->
+    <div class="profile-name">
+      <h1>{{ profile.profile.name }} {{ profile.profile.surname }}</h1>
+    </div>
   </div>
 
-  <!-- Username Editing -->
-  <div *ngIf="isEditingUsername" class="edit-section">
-    <label for="username">Username:</label>
-    <input
-      type="text"
-      id="username"
-      [(ngModel)]="profile.username"
-      (input)="onUsernameChange(profile.username)"
-      placeholder="Enter new username"
-    />
-    <p
-      *ngIf="usernameAvailable !== null"
-      [class.available]="usernameAvailable"
-      [class.not-available]="!usernameAvailable"
-    >
-      {{
-        usernameAvailable
-          ? "Username is available"
-          : "Username is already taken"
-      }}
-    </p>
-    <button (click)="saveUsername()">Save Username</button>
-    <button (click)="cancelEditUsername()">Cancel</button>
+  <!-- Profile Details -->
+  <div class="profile-details">
+    <!-- General Information -->
+    <div class="detail-section">
+      <h2>General Information</h2>
+      <div class="info-row">
+        <span class="info-label">Name:</span>
+        <span class="info-value">{{
+          profile.profile.name || "Not Provided"
+        }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Surname:</span>
+        <span class="info-value">{{
+          profile.profile.surname || "Not Provided"
+        }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Phone Number:</span>
+        <span class="info-value">{{
+          profile.profile.phone_number || "Not Provided"
+        }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">City:</span>
+        <span class="info-value">{{
+          profile.profile.city || "Not Provided"
+        }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Country:</span>
+        <span class="info-value">{{
+          profile.profile.country || "Not Provided"
+        }}</span>
+      </div>
+      <button class="edit-btn" (click)="editField('general')">
+        Edit Profile
+      </button>
+
+      <!-- Edit General Information -->
+      <div *ngIf="editingField === 'general'" class="edit-section">
+        <div class="form-group">
+          <label for="name">Name:</label>
+          <input id="name" type="text" [(ngModel)]="profile.profile.name" />
+        </div>
+        <div class="form-group">
+          <label for="surname">Surname:</label>
+          <input
+            id="surname"
+            type="text"
+            [(ngModel)]="profile.profile.surname"
+          />
+        </div>
+        <div class="form-group">
+          <label for="phone">Phone Number:</label>
+          <input
+            id="phone"
+            type="text"
+            [(ngModel)]="profile.profile.phone_number"
+          />
+        </div>
+        <div class="form-group">
+          <label for="city">City:</label>
+          <input id="city" type="text" [(ngModel)]="profile.profile.city" />
+        </div>
+        <div class="form-group">
+          <label for="country">Country:</label>
+          <input
+            id="country"
+            type="text"
+            [(ngModel)]="profile.profile.country"
+          />
+        </div>
+        <div class="action-buttons">
+          <button class="save-btn" (click)="saveField('general')">Save</button>
+          <button class="cancel-btn" (click)="cancelEdit()">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Account Information -->
+    <div class="detail-section">
+      <h2>Account Information</h2>
+
+      <!-- Username -->
+      <div class="info-row">
+        <span class="info-label">Username:</span>
+        <span class="info-value">{{ profile.username }}</span>
+        <button class="edit-btn" (click)="editField('username')">Edit</button>
+      </div>
+
+      <!-- Edit Username -->
+      <div *ngIf="editingField === 'username'" class="edit-section">
+        <div class="form-group">
+          <label for="new-username">New Username:</label>
+          <input
+            id="new-username"
+            type="text"
+            [(ngModel)]="editValue"
+            (input)="checkAvailability('username', editValue)"
+          />
+        </div>
+        <p
+          class="availability-message"
+          [ngClass]="{
+            available: availabilityStatus === 'available',
+            unavailable: availabilityStatus === 'unavailable'
+          }"
+        >
+          {{ availabilityMessage }}
+        </p>
+        <div class="action-buttons">
+          <button
+            class="save-btn"
+            [disabled]="availabilityStatus !== 'available'"
+            (click)="saveField('username')"
+          >
+            Save
+          </button>
+          <button class="cancel-btn" (click)="cancelEdit()">Cancel</button>
+        </div>
+      </div>
+
+      <!-- Email -->
+      <div class="info-row">
+        <span class="info-label">Email:</span>
+        <span class="info-value">{{ profile.email }}</span>
+        <button class="edit-btn" (click)="editField('email')">Edit</button>
+      </div>
+
+      <!-- Edit Email -->
+      <div *ngIf="editingField === 'email'" class="edit-section">
+        <div class="form-group">
+          <label for="new-email">New Email:</label>
+          <input
+            id="new-email"
+            type="email"
+            [(ngModel)]="editValue"
+            (input)="checkAvailability('email', editValue)"
+          />
+        </div>
+        <p
+          class="availability-message"
+          [ngClass]="{
+            available: availabilityStatus === 'available',
+            unavailable: availabilityStatus === 'unavailable'
+          }"
+        >
+          {{ availabilityMessage }}
+        </p>
+        <div class="action-buttons">
+          <button
+            class="save-btn"
+            [disabled]="availabilityStatus !== 'available'"
+            (click)="saveField('email')"
+          >
+            Save
+          </button>
+          <button class="cancel-btn" (click)="cancelEdit()">Cancel</button>
+        </div>
+      </div>
+    </div>
   </div>
-
-  <!-- Email Editing -->
-  <div *ngIf="isEditingEmail" class="edit-section">
-    <label for="email">Email:</label>
-    <input
-      type="email"
-      id="email"
-      [(ngModel)]="profile.email"
-      (input)="onEmailChange(profile.email)"
-      placeholder="Enter new email"
-    />
-    <p
-      *ngIf="emailAvailable !== null"
-      [class.available]="emailAvailable"
-      [class.not-available]="!emailAvailable"
-    >
-      {{ emailAvailable ? "Email is available" : "Email is already in use" }}
-    </p>
-    <button (click)="saveEmail()">Save Email</button>
-    <button (click)="cancelEditEmail()">Cancel</button>
-  </div>
-
-  <!-- Editable Profile View -->
-  <form *ngIf="isEditing" class="profile-form">
-    <label for="first_name">First Name:</label>
-    <input
-      type="text"
-      id="first_name"
-      [(ngModel)]="profile.first_name"
-      placeholder="Enter your first name"
-    />
-
-    <label for="last_name">Last Name:</label>
-    <input
-      type="text"
-      id="last_name"
-      [(ngModel)]="profile.last_name"
-      placeholder="Enter your last name"
-    />
-
-    <label for="phone_number">Phone Number:</label>
-    <input
-      type="tel"
-      id="phone_number"
-      [(ngModel)]="profile.phone_number"
-      placeholder="Enter your phone number"
-    />
-
-    <label for="city">City:</label>
-    <input
-      type="text"
-      id="city"
-      [(ngModel)]="profile.city"
-      placeholder="Enter your city"
-    />
-
-    <label for="country">Country:</label>
-    <select id="country" [(ngModel)]="profile.country">
-      <option *ngFor="let country of countries" [value]="country">
-        {{ country }}
-      </option>
-    </select>
-
-    <button (click)="saveProfile()">Save Profile</button>
-    <button (click)="cancelEdit()">Cancel</button>
-  </form>
 </div>

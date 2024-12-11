@@ -28,6 +28,9 @@ class ItemRequest(models.Model):
     active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def __str__(self):
+        return self.title
+
     def save(self, *args, **kwargs):
         is_new = not self.pk  # Check if this is a new instance
         super().save(*args, **kwargs)  # Save the instance to generate the ID if new
@@ -39,22 +42,12 @@ class ItemRequest(models.Model):
                 filename = f"{uuid.uuid4()}_{os.path.basename(self.image.name)}"
                 new_dir = os.path.join('media', 'requests', str(self.id))
                 new_path = os.path.join(new_dir, filename)
-
-                # Debug prints
-                print("=== DEBUG: Save Method ===")
-                print("Old Path:", old_path)
-                print("New Directory:", new_dir)
-                print("New Path:", new_path)
-
                 # Ensure the new directory exists
                 os.makedirs(new_dir, exist_ok=True)
-
                 # Move the file
                 os.rename(old_path, new_path)
-
                 # Update the image field to the new path
                 self.image.name = os.path.join('requests', str(self.id), filename)
-
                 # Save the instance again to update the image field in the database
                 super().save(update_fields=['image'])
             except Exception as e:
@@ -63,12 +56,10 @@ class ItemRequest(models.Model):
                 raise
 
 
-
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=100, blank=True, null=True)
     surname = models.CharField(max_length=100, blank=True, null=True)
-    bio = models.TextField(blank=True, null=True)
     phone_number = models.CharField(max_length=15, blank=True, null=True)
     city = models.CharField(max_length=100, blank=True, null=True)
     country = models.CharField(max_length=100, blank=True, null=True)
@@ -77,15 +68,39 @@ class Profile(models.Model):
     def __str__(self):
         return f'{self.user.username} Profile'
 
+
 class Message(models.Model):
+    
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
     receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_messages')
     item = models.ForeignKey(ItemRequest, on_delete=models.CASCADE)
     content = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
-    is_accepted = models.BooleanField(default=False)  # Indicates if the message request is accepted
-    is_read = models.BooleanField(default=False)      # Indicates if the message is read (for notifications)
+    # Indicates if the message request is accepted
+    is_accepted = models.BooleanField(default=False)  
+    # Indicates if the message is read for notifications
+    is_read = models.BooleanField(default=False)
+          
 
     def __str__(self):
-        return f"Message from {self.sender} to {self.receiver} about {self.item.item_name}"
+        return f"Message from {self.sender} to {self.receiver} about {self.item.title}"
+
+class Deal(models.Model):
+    item = models.ForeignKey(ItemRequest, on_delete=models.CASCADE)
+    buyer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='deals_as_buyer')
+    seller = models.ForeignKey(User, on_delete=models.CASCADE, related_name='deals_as_seller')
+    closed_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Deal on {self.item.title} between {self.buyer.username} and {self.seller.username}"
+
+class Feedback(models.Model):
+    reviewer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='given_feedbacks')
+    reviewee = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_feedbacks')
+    comment = models.TextField()
+    rating = models.IntegerField(default=5)  # rating from 1 to 5, for example
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Feedback from {self.reviewer.username} to {self.reviewee.username}"
 

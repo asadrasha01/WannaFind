@@ -1,3 +1,5 @@
+<!-- src/app/pages/chat/chat.component.html -->
+
 <div class="chat-container">
   <!-- Previous Chats Section -->
   <div class="previous-chats">
@@ -7,7 +9,20 @@
         *ngFor="let chat of previousChats"
         (click)="openChat(chat.userId, chat.itemId)"
       >
-        <strong>{{ chat.username }}</strong>
+        <div class="chat-header">
+          <!-- User Avatar or Initials -->
+          <div class="avatar">
+            <img
+              *ngIf="chat.userProfileImageUrl"
+              [src]="chat.userProfileImageUrl"
+              alt="{{ chat.username }}'s avatar"
+            />
+            <span *ngIf="!chat.userProfileImageUrl">{{
+              getInitials(chat.username)
+            }}</span>
+          </div>
+          <strong>{{ chat.username }}</strong>
+        </div>
         <p>{{ chat.latestMessage }}</p>
         <span>{{ chat.timestamp | date : "short" }}</span>
       </li>
@@ -15,30 +30,139 @@
   </div>
 
   <!-- Current Chat Section -->
-  <div class="current-chat">
-    <div *ngIf="!selectedUser" class="empty-chat">
-      Select a user to start chatting.
-    </div>
-
-    <div *ngIf="selectedUser">
-      <h3>Chat with {{ selectedUser.username }}</h3>
-      <div class="chat-history">
-        <div
-          *ngFor="let message of currentChat"
-          class="message"
-          [class]="
-            message.sender === selectedUser.username ? 'received' : 'sent'
-          "
-        >
-          {{ message.content }}
+  <div class="current-chat" *ngIf="selectedUser">
+    <!-- Chat Header -->
+    <div class="chat-header-bar">
+      <div class="header-left" (click)="openUserInfo(selectedUser.userId)">
+        <div class="avatar">
+          <img
+            *ngIf="selectedUser.profileImage"
+            [src]="selectedUser.profileImage"
+            alt="{{ selectedUser.username }}'s avatar"
+          />
+          <span *ngIf="!selectedUser.profileImage">{{
+            getInitials(selectedUser.username)
+          }}</span>
+        </div>
+        <div class="user-info">
+          <h3>{{ selectedUser.username }}</h3>
+          <p>{{ selectedUser.city }}, {{ selectedUser.country }}</p>
         </div>
       </div>
-      <div class="chat-input">
-        <textarea
-          [(ngModel)]="newMessage"
-          placeholder="Type your message..."
-        ></textarea>
-        <button (click)="sendMessage()">Send</button>
+      <div class="header-right">
+        <button class="menu-button" (click)="toggleMenu()">
+          <span class="dots">•••</span>
+        </button>
+        <div class="menu-dropdown" *ngIf="menuOpen">
+          <ul>
+            <li (click)="closeDeal()">Close the Deal</li>
+            <li (click)="deleteChat()">Delete Chat</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="chat-history">
+      <div *ngFor="let message of currentChat">
+        <!-- System (Item Info) Message -->
+        <div *ngIf="message.message_type === 'system'" class="system-message">
+          <div class="item-card">
+            <img
+              *ngIf="message.item_image"
+              [src]="message.item_image"
+              class="item-image"
+            />
+            <h4>{{ message.item_title }}</h4>
+            <p class="item-description">{{ message.item_description }}</p>
+            <div class="item-meta">
+              <span>{{ message.item_category }}</span>
+              <span>{{ message.item_brand }}</span>
+              <span>{{ message.item_condition }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- User Message -->
+        <div
+          *ngIf="message.message_type !== 'system'"
+          [ngClass]="{
+            'message-line': true,
+            sent: message.sender === currentUser.username,
+            received: message.sender !== currentUser.username
+          }"
+        >
+          <!-- Avatar for received messages -->
+          <div
+            *ngIf="message.sender !== currentUser.username"
+            class="avatar-small"
+          >
+            <img
+              *ngIf="selectedUser.profileImage"
+              [src]="selectedUser.profileImage"
+            />
+            <span *ngIf="!selectedUser.profileImage">{{
+              getInitials(selectedUser.username)
+            }}</span>
+          </div>
+          <div class="message-content">
+            {{ message.content }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Messaging Input -->
+    <div class="chat-input" *ngIf="!dealClosed">
+      <textarea
+        [(ngModel)]="newMessage"
+        placeholder="Type your message..."
+      ></textarea>
+      <button (click)="sendMessage()">Send</button>
+    </div>
+    <div class="deal-closed-message" *ngIf="dealClosed">
+      Deal closed. No further messages allowed.
+    </div>
+  </div>
+
+  <div *ngIf="!selectedUser" class="empty-chat">
+    Select a user to start chatting.
+  </div>
+
+  <!-- User Info Modal -->
+  <div class="user-info-modal" *ngIf="showUserInfo">
+    <div class="modal-content">
+      <button class="close-btn" (click)="closeUserInfo()">×</button>
+      <div class="avatar-large">
+        <img
+          *ngIf="userInfo.profile?.profile_image"
+          [src]="userInfo.profile.profile_image"
+          alt="{{ userInfo.username }}'s avatar"
+        />
+        <span *ngIf="!userInfo.profile?.profile_image">{{
+          getInitials(userInfo.profile?.name, userInfo.profile?.surname)
+        }}</span>
+      </div>
+      <h2>{{ userInfo.profile?.name }} {{ userInfo.profile?.surname }}</h2>
+      <p><strong>Username:</strong> {{ userInfo.username }}</p>
+      <p><strong>Email:</strong> {{ userInfo.email }}</p>
+      <p><strong>Phone:</strong> {{ userInfo.profile?.phone_number }}</p>
+      <p>
+        <strong>Location:</strong> {{ userInfo.profile?.city }},
+        {{ userInfo.profile?.country }}
+      </p>
+
+      <!-- Display received feedbacks -->
+      <div class="feedback-section" *ngIf="userInfo.received_feedbacks?.length">
+        <h3>Feedback</h3>
+        <div
+          class="feedback-item"
+          *ngFor="let fb of userInfo.received_feedbacks"
+        >
+          <p>
+            <strong>{{ fb.reviewer_username }}:</strong>
+            {{ fb.comment }} (Rating: {{ fb.rating }}/5)
+          </p>
+        </div>
       </div>
     </div>
   </div>

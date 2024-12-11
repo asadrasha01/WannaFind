@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, HostListener } from '@angular/core';
 import { AuthService } from '../../services/auth.service';
 import { Router } from '@angular/router'; // Import Router
 
@@ -46,12 +46,15 @@ export class ItemListComponent implements OnInit {
       }
     );
   }
+
   openModal(item: any): void {
     this.selectedItem = item; // Sets the selected item
   }
 
   closeModal(): void {
     this.selectedItem = null; // Resets the selected item
+    this.showRequestForm = false;
+    this.requestMessage = '';
   }
 
   // Toggle request form
@@ -79,9 +82,18 @@ export class ItemListComponent implements OnInit {
       alert('Please enter a valid message.');
     }
   }
+
   // Cancel request form
   cancelRequest(): void {
     this.showRequestForm = false;
     this.requestMessage = '';
+  }
+
+  // Close modal when pressing Escape key
+  @HostListener('document:keydown.escape', ['$event'])
+  onEscapePressed(event: KeyboardEvent) {
+    if (this.selectedItem) {
+      this.closeModal();
+    }
   }
 }
